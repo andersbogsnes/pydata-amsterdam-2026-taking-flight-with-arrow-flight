@@ -1,0 +1,31 @@
+[project]
+name = "taking_flight"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Anders Bogsnes", email = "andersbognes@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "cyclopts>=4.22.2",
+    "fastapi>=0.140.7",
+    "jupyterlab>=4.6.2",
+    "polars>=1.43.1",
+    "psycopg[binary]>=3.3.4",
+    "pyarrow>=25.0.0",
+    "pydantic-settings>=2.14.2",
+    "pyiceberg>=0.11.1",
+    "pyrefly>=0.60.0",
+    "python-on-whales>=0.81.0",
+    "rich>=14.3.4",
+    "sqlalchemy>=2.0.51",
+    "uvicorn>=0.51.0",
+]
+
+[project.scripts]
+fly = "taking_flight.cli:app.meta"
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"

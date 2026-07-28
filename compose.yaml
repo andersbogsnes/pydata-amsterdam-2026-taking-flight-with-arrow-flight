@@ -1,0 +1,110 @@
+name: taking-flight
+
+services:
+  notebook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    command:
+      - "jupyter"
+      - "lab"
+      - "--ip"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+      - "--notebook-dir"
+      - "/app/notebooks"
+      - "--IdentityProvider.token=''"
+      - "--ServerApp.password=''"
+      - "--no-browser"
+    volumes:
+      - ./data:/app/notebooks/data
+      - ./notebooks:/app/notebooks
+    develop:
+      watch:
+        - action: rebuild
+          path: src
+        - action: rebuild
+          path: pyproject.toml
+  rest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_URL=postgresql+psycopg://postgres:postgres@db:5432
+    command:
+      - "fly"
+      - "start"
+      - "rest"
+    depends_on:
+      db:
+        condition: service_healthy
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "7000:7000"
+    environment:
+      - CATALOG_URL=http://lakekeeper:8181
+    command:
+      - "fly"
+      - "start"
+      - "server"
+    depends_on:
+      db:
+        condition: service_healthy
+  storage:
+    image: rustfs/rustfs:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - RUSTFS_ACCESS_KEY=rustfsadmin
+      - RUSTFS_SECRET_KEY=rustfsadmin
+      - RUSTFS_CONSOLE_ENABLE=true
+  db:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1s
+      timeout: 5s
+      retries: 30
+      start_period: 1s
+  lakekeeper:
+    image: &lakekeeper-image quay.io/lakekeeper/catalog:v0.13
+    pull_policy: always
+    environment: &lakekeeper-environment
+      - LAKEKEEPER__PG_ENCRYPTION_KEY=dev-secret-key-dev-secret-key-dev-secret-key
+      - LAKEKEEPER__PG_DATABASE_URL_READ=postgresql://postgres:postgres@db:5432/postgres
+      - LAKEKEEPER__PG_DATABASE_URL_WRITE=postgresql://postgres:postgres@db:5432/postgres
+      - LAKEKEEPER__AUTHZ_BACKEND=allowall
+    command: ["serve"]
+    healthcheck:
+      test: ["CMD", "/home/nonroot/lakekeeper", "healthcheck"]
+      interval: 1s
+      timeout: 10s
+      retries: 3
+      start_period: 3s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8181:8181"
+  migrate:
+    image: *lakekeeper-image
+    pull_policy: always
+    environment: *lakekeeper-environment
+    restart: "no"
+    command: ["migrate"]
+    depends_on:
+      db:
+        condition: service_healthy

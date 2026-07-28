@@ -1,0 +1,41 @@
+import sqlalchemy as sa
+
+meta = sa.MetaData()
+
+messages_table = sa.Table(
+    "messages",
+    meta,
+    sa.Column("id", sa.BigInteger, primary_key=True),
+    sa.Column("message_id", sa.Text, nullable=False),
+    sa.Column("campaign_id", sa.BigInteger, nullable=False),
+    sa.Column("message_type", sa.String, nullable=False),
+    sa.Column("client_id", sa.BigInteger, nullable=False),
+    sa.Column("channel", sa.String, nullable=False),
+    sa.Column("category", sa.String, nullable=True),
+    sa.Column("platform", sa.String, nullable=True),
+    sa.Column("email_provider", sa.String, nullable=False),
+    sa.Column("stream", sa.String, nullable=False),
+    sa.Column("date", sa.Date, nullable=False),
+    sa.Column("sent_at", sa.DateTime, nullable=False),
+    sa.Column("is_opened", sa.Boolean, nullable=False),
+    sa.Column("opened_first_time_at", sa.DateTime, nullable=True),
+    sa.Column("opened_last_time_at", sa.DateTime, nullable=True),
+    sa.Column("is_clicked", sa.Boolean, nullable=False),
+    sa.Column("clicked_first_time_at", sa.DateTime, nullable=True),
+    sa.Column("clicked_last_time_at", sa.DateTime, nullable=True),
+    sa.Column("is_unsubscribed", sa.Boolean, nullable=False),
+    sa.Column("unsubscribed_at", sa.DateTime, nullable=True),
+    sa.Column("is_hard_bounced", sa.Boolean, nullable=False),
+    sa.Column("hard_bounced_at", sa.DateTime, nullable=True),
+    sa.Column("is_soft_bounced", sa.Boolean, nullable=False),
+    sa.Column("soft_bounced_at", sa.DateTime, nullable=True),
+    sa.Column("is_complained", sa.Boolean, nullable=False),
+    sa.Column("complained_at", sa.DateTime, nullable=True),
+    sa.Column("is_blocked", sa.Boolean, nullable=False),
+    sa.Column("blocked_at", sa.DateTime, nullable=True),
+    sa.Column("is_purchased", sa.Boolean, nullable=False),
+    sa.Column("purchased_at", sa.DateTime, nullable=True),
+    sa.Column("created_at", sa.DateTime, nullable=False),
+    sa.Column("updated_at", sa.DateTime, nullable=False),
+)
+
