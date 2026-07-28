@@ -2,7 +2,6 @@ from typing import Annotated
 
 import cyclopts
 from cyclopts import Parameter
-from rich.panel import Panel
 from rich.text import Text
 
 from taking_flight.cli.bootstrap import app as bootstrap_app

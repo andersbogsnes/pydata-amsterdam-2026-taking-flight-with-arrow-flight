@@ -2,8 +2,14 @@ import json
 from logging import getLogger
 
 from pyarrow import flight
+
 # These types are not yet exported as public types https://github.com/apache/arrow/issues/44909
-from pyarrow._flight import ServerAuthSender, ServerAuthReader, ClientAuthReader, ClientAuthSender  # type: ignore
+from pyarrow._flight import (  # type: ignore
+    ClientAuthReader,
+    ClientAuthSender,
+    ServerAuthReader,
+    ServerAuthSender,
+)
 
 logger = getLogger(__name__)
 
@@ -11,9 +17,11 @@ logger = getLogger(__name__)
 class TokenServerAuthHandler(flight.ServerAuthHandler):
     def __init__(self, token: str):
         super().__init__()
-        self._token = token.encode('utf-8')
+        self._token = token.encode("utf-8")
 
-    def authenticate(self, outgoing: ServerAuthSender, incoming: ServerAuthReader) -> None:
+    def authenticate(
+        self, outgoing: ServerAuthSender, incoming: ServerAuthReader
+    ) -> None:
         """This is called by the Flight server when a new connection is established."""
         logger.info("Authenticating user during handshake")
         received = incoming.read()
@@ -40,8 +48,8 @@ class TokenClientAuthHandler(flight.ClientAuthHandler):
         self._token = token
 
     def get_token(self) -> bytes:
-        return self._token.encode('utf-8')
+        return self._token.encode("utf-8")
 
     def authenticate(self, outgoing: ClientAuthSender, incoming: ClientAuthReader):
-        outgoing.write(self._token.encode('utf-8'))
+        outgoing.write(self._token.encode("utf-8"))
         incoming.read()

@@ -1,42 +1,41 @@
 import io
 import pathlib
 import subprocess
-from typing import Iterator, Annotated
+from collections.abc import Iterator
 
 import cyclopts
+import httpx2
 import pyarrow as pa
 import pyarrow.csv
 import sqlalchemy as sa
-from cyclopts import Parameter
-from pyarrow import parquet as pq
-from pyarrow.fs import FileSystem, FileType, S3FileSystem
+from pyarrow.fs import FileSystem, S3FileSystem
+from pyiceberg.catalog.rest import RestCatalog
+from pyiceberg.exceptions import NamespaceAlreadyExistsError
+from pyiceberg.typedef import Identifier
 from python_on_whales import DockerClient
 from rich.progress import (
     BarColumn,
     DownloadColumn,
     Progress,
-    SpinnerColumn,
     TimeRemainingColumn,
     TransferSpeedColumn,
 )
 from sqlalchemy.engine.interfaces import DBAPIConnection
 
 from taking_flight.cli.console import console
-from taking_flight.flight_server import db as flight_db
-from taking_flight.flight_server.db import dataset_table
 from taking_flight.rest import db as rest_db
-from taking_flight.rest.settings import Settings
+from taking_flight.settings import Settings
 
 app = cyclopts.App(
     name="bootstrap", help="Start backing services and upload initial data"
 )
 settings = Settings()
 s3_fs = S3FileSystem(
-    access_key=settings.access_key.get_secret_value(),
-    secret_key=settings.secret_key.get_secret_value(),
-    endpoint_override=settings.s3_endpoint.unicode_string(),
+    access_key=settings.s3_access_key.get_secret_value(),
+    secret_key=settings.s3_secret_key.get_secret_value(),
+    endpoint_override=settings.s3_url,
     allow_bucket_creation=True,
-    region=settings.region,
+    region=settings.s3_region,
 )
 
 DATA_DIR = pathlib.Path(__file__).parents[3] / "data"
@@ -46,8 +45,9 @@ CAMPAIGNS_URL = (
 )
 MESSAGES_FILE = DATA_DIR / "messages-demo.csv"
 CAMPAIGNS_FILE = DATA_DIR / "campaigns.csv"
-BUCKET_NAME = "events"
-DB_URL = Settings().db_url.unicode_string()
+NAMESPACE = "events"
+DB_URL = settings.db_url.unicode_string()
+CATALOG_URL = settings.catalog_url
 
 transfer_progress = Progress(
     "[progress.description]{task.description}",
@@ -58,139 +58,202 @@ transfer_progress = Progress(
     console=console,
 )
 
-status_progress = Progress(
-    SpinnerColumn(finished_text="[green]✓[/green]"),
-    "{task.description}",
-    console=console,
-)
 
-
-def _start_compose(services: list[str] | None = None) -> None:
+def _start_compose() -> None:
     docker = DockerClient()
     docker.compose.up(
         detach=True,
-        quiet=True,
-        services=services,
-        wait=True,
         build=True,
     )
 
 
 def _stop_compose(remove_volumes: bool = True) -> None:
     docker = DockerClient()
-    docker.compose.down(quiet=True, remove_orphans=True, volumes=remove_volumes, timeout=10)
+    docker.compose.down(remove_orphans=True, volumes=remove_volumes, timeout=10)
 
 
 def _create_bucket(fs: FileSystem, bucket_name: str) -> None:
     fs.create_dir(bucket_name)
 
 
+def _bootstrap_catalog(catalog_url: str) -> None:
+    resp = httpx2.post(
+        f"{catalog_url}/management/v1/bootstrap", json={"accept-terms-of-use": True}
+    )
+
+    match resp.status_code:
+        case 201:
+            console.print("[green]✔[/green] Catalog bootstrapped successfully")
+        case 204:
+            console.print("[green]✔[/green] Catalog already bootstrapped")
+        case 400:
+            message = resp.json()
+            if message.get("error", {}).get("type") == "CatalogAlreadyBootstrapped":
+                console.print("[green]✔[/green] Catalog already bootstrapped")
+            else:
+                console.print(message)
+                raise RuntimeError("Failed to bootstrap catalog")
+        case _:
+            console.print(resp.text)
+            raise RuntimeError("Failed to bootstrap catalog")
+
+    resp = httpx2.post(
+        f"{catalog_url}/management/v1/warehouse",
+        json={
+            "warehouse-name": "default",
+            "default-format-version": 3,
+            "storage-profile": {
+                "type": "s3",
+                "bucket": settings.bucket_name,
+                "key-prefix": "iceberg",
+                "path-style-access": True,
+                "endpoint": settings.s3_catalog_endpoint,
+                "region": settings.s3_region,
+                "flavor": "s3-compat",
+                "sts-enabled": True,
+                "sts-endpoint": settings.s3_catalog_endpoint,
+                "remote-signing-enabled": False,
+            },
+            "storage-credential": {
+                "type": "s3",
+                "credential-type": "access-key",
+                "aws-access-key-id": settings.s3_access_key.get_secret_value(),
+                "aws-secret-access-key": settings.s3_secret_key.get_secret_value(),
+            },
+            "delete-profile": {
+                "type": "hard",
+            },
+        },
+    )
+
+    match resp.status_code:
+        case 201:
+            console.print("[green]✔[/green] Warehouse bootstrapped successfully")
+        case 204:
+            console.print("[green]✔[/green] Warehouse already bootstrapped")
+        case 400:
+            message = resp.json()
+            match message.get("error", {}).get("type"):
+                case "CreateWarehouseStorageProfileOverlap":
+                    console.print("[green]✔[/green] Warehouse already bootstrapped")
+                case _:
+                    console.print(message)
+                    raise RuntimeError(f"Failed to bootstrap warehouse: {message}")
+        case _:
+            console.print(resp.text)
+            raise RuntimeError(f"Failed to bootstrap catalog: {resp.text}")
+
+
 def _upload_message_to_db(
-    engine: sa.Engine, local_file_path: pathlib.Path
+    engine: sa.Engine, table_name: str, local_file_path: pathlib.Path
 ) -> Iterator[int]:
+    """Inner loop to handle COPY INTO the Postgres database"""
     with local_file_path.open("rb") as f, engine.begin() as conn:
         raw_conn: DBAPIConnection | None = conn.connection.dbapi_connection
         if raw_conn is None:
             raise RuntimeError("Connection not open")
-        with pyarrow.csv.open_csv(
-            f,
-            convert_options=pyarrow.csv.ConvertOptions(
-                true_values=["t"],
-                false_values=["f"],
-                column_types={"platform": "string", "blocked_at": pa.timestamp("s")},
-            ),
-        ) as reader:
-            with (
-                raw_conn.cursor() as cursor,  # ty:ignore[invalid-context-manager]
-                cursor.copy("COPY messages FROM STDIN (FORMAT CSV)") as copy,
-            ):
-                write_options = pyarrow.csv.WriteOptions(include_header=False)
-                for batch in reader:
-                    buf = io.BytesIO()
-                    pyarrow.csv.write_csv(batch, buf, write_options=write_options)
-                    copy.write(buf.getvalue())
-                    yield f.tell()
+        with (
+            pyarrow.csv.open_csv(
+                f,
+                convert_options=pyarrow.csv.ConvertOptions(
+                    true_values=["t"],
+                    false_values=["f"],
+                    column_types={
+                        "platform": "string",
+                        "blocked_at": pa.timestamp("s"),
+                    },
+                ),
+            ) as reader,
+            raw_conn.cursor() as cursor,
+            cursor.copy(f"COPY {table_name} FROM STDIN (FORMAT CSV)") as copy,
+        ):
+            write_options = pyarrow.csv.WriteOptions(include_header=False)
+            for batch in reader:
+                buf = io.BytesIO()
+                pyarrow.csv.write_csv(batch, buf, write_options=write_options)
+                copy.write(buf.getvalue())
+                yield f.tell()
 
 
-def _upload_messages_to_bucket(
-    fs: FileSystem, local_file_path: pathlib.Path, bucket_name: str
+def _upload_messages_to_iceberg(
+    catalog: RestCatalog, local_file_path: pathlib.Path, identifier: Identifier
 ) -> Iterator[int]:
+    """Inner batched upload - performs the upload in batches. Yields the byte progress, so the progress
+    bar can update
+    """
     # Open the file directly to get access to `.tell` to keep track of read bytes
-    with local_file_path.open("rb") as f:
-        with pyarrow.csv.open_csv(
+    with (
+        local_file_path.open("rb") as f,
+        pyarrow.csv.open_csv(
             f,
             convert_options=pyarrow.csv.ConvertOptions(
                 true_values=["t"],
                 false_values=["f"],
-                column_types={"platform": "string", "blocked_at": pa.timestamp("s")},
+                column_types={
+                    "platform": "string",
+                    "category": "string",
+                    "created_at": pa.timestamp("us"),
+                    "updated_at": pa.timestamp("us"),
+                    "blocked_at": pa.timestamp("s"),
+                },
             ),
-        ) as reader:
-            writer = pq.ParquetWriter(
-                f"{bucket_name}/messages.parquet",
-                reader.schema,
-                filesystem=fs,
-            )
-            try:
-                for chunk in reader:
-                    writer.write_batch(chunk)
-                    yield f.tell()
-            finally:
-                writer.close()
+        ) as reader,
+    ):
+        table = catalog.create_table(identifier, reader.schema)
+        with table.transaction() as tx:
+            for chunk in reader:
+                tx.append([chunk.data])
+                yield f.tell()
 
 
-def _handle_bucket_upload(
-    engine: sa.Engine, bucket_name: str, messages_file: pathlib.Path
+def _handle_iceberg_upload(
+    catalog: RestCatalog, identifier: Identifier, data_file: pathlib.Path
 ):
-    _create_bucket(s3_fs, bucket_name)
-
-    if s3_fs.get_file_info(f"{bucket_name}/messages.parquet").type != FileType.NotFound:
+    """Uploads the data file to the Iceberg table - wraps the inner upload loop with
+    progress bars
+    """
+    if catalog.table_exists(identifier):
         console.print(
-            f"[green]✓[/green] ️Already uploaded messages.parquet to {bucket_name} "
+            f"[green]✓[/green] ️Already uploaded {data_file.name} to {identifier}"
             "- skipping"
         )
         return
+
+    try:
+        catalog.create_namespace(identifier[0])
+    except NamespaceAlreadyExistsError:
+        pass
+
     with transfer_progress:
         upload_file_task = transfer_progress.add_task(
-            "Uploading messages to bucket", total=messages_file.stat().st_size
+            "Uploading messages to bucket", total=data_file.stat().st_size
         )
-        for completed_bytes in _upload_messages_to_bucket(
-            s3_fs, messages_file, bucket_name
+        for completed_bytes in _upload_messages_to_iceberg(
+            catalog, data_file, identifier
         ):
             transfer_progress.update(upload_file_task, completed=completed_bytes)
         transfer_progress.update(
             upload_file_task, description="[green]✓[/green] Upload to bucket complete!"
         )
-        result = pq.read_metadata(f"{bucket_name}/messages.parquet", filesystem=s3_fs)
-        size = s3_fs.get_file_info(f"{bucket_name}/messages.parquet").size
-
-        with engine.begin() as conn:
-            sql = dataset_table.insert().values(
-                name="messages",
-                bucket=bucket_name,
-                file_name="messages.parquet",
-                file_type="parquet",
-                num_partitions=result.num_row_groups,
-                num_rows=result.num_rows,
-                serialized_size=size,
-                description="Contains a list of all messages sent with its statuses and meta info.",
-            )
-            conn.execute(sql)
     transfer_progress.remove_task(upload_file_task)
 
 
-def _handle_db_upload(engine: sa.Engine, messages_file: pathlib.Path):
+def _handle_db_upload(engine: sa.Engine, db_table: sa.Table, data_file: pathlib.Path):
+    """Uploads the data file to the DB table - wraps the inner upload loop with progress bars"""
     with engine.begin() as conn:
-        sql = sa.select(sa.func.count(rest_db.messages_table.c.id))
+        sql = sa.select(sa.func.count(db_table.c.id))
         row_count = conn.execute(sql).scalar_one()
         if row_count > 0:
-            console.print("[green]✓[/green] DB already has messages - skipping")
+            console.print(
+                f"[green]✓[/green] DB {db_table.name} already has  - skipping"
+            )
             return
 
     with transfer_progress:
         upload_task = transfer_progress.add_task(
-            "Uploading messages to DB", total=messages_file.stat().st_size
+            "Uploading messages to DB", total=data_file.stat().st_size
         )
-        for completed_bytes in _upload_message_to_db(engine, messages_file):
+        for completed_bytes in _upload_message_to_db(engine, db_table.name, data_file):
             transfer_progress.update(upload_task, completed=completed_bytes)
 
         transfer_progress.update(
@@ -200,44 +263,44 @@ def _handle_db_upload(engine: sa.Engine, messages_file: pathlib.Path):
 
 
 def _start_notebook():
-    subprocess.run(["jupyter", "lab", "--notebook-dir", "notebooks"])
+    try:
+        subprocess.run(["jupyter", "lab", "--notebook-dir", "notebooks"], check=True)
+    except subprocess.CalledProcessError as e:
+        console.print("Failed to start JupyterLab")
+        console.print(e.output)
+        raise
 
 
 @app.command()
 def up(
-    bucket_name: str = BUCKET_NAME,
+    namespace: str = NAMESPACE,
     db_url: str = DB_URL,
 ):
     """Start backing services and upload initial data"""
-    for data_file in [MESSAGES_FILE, CAMPAIGNS_FILE]:
+    for location, data_file in zip(
+        [MESSAGES_URL, CAMPAIGNS_URL], [MESSAGES_FILE, CAMPAIGNS_FILE]
+    ):
         if not data_file.exists():
             console.print(
                 f"❌ [red]{data_file} doesn't exist. "
-                f"Go to {data_file}, download and extract it to the data folder"
+                f"Go to {location}, download and extract it to the data folder"
             )
             return
     engine = sa.create_engine(db_url)
-    services = ["db", "storage", "rest", "server", "notebook"]
-    with status_progress:
-        for service in services:
-            task = status_progress.add_task(f"Starting {service.title()}", total=1)
-            _start_compose([service])
-            status_progress.update(
-                task, description=f"{service.title()} started!", advance=1
-            )
-        rest_db.meta.create_all(engine)
-        flight_db.meta.create_all(engine)
-        _handle_bucket_upload(engine, bucket_name, MESSAGES_FILE)
-        _handle_db_upload(engine, MESSAGES_FILE)
+
+    _start_compose()
+    _create_bucket(s3_fs, settings.bucket_name)
+    _bootstrap_catalog(CATALOG_URL)
+    rest_db.meta.create_all(engine)
+    catalog = RestCatalog(
+        "default", uri="http://localhost:8181/catalog", warehouse="default"
+    )
+    _handle_iceberg_upload(catalog, (NAMESPACE, "messages"), MESSAGES_FILE)
+    _handle_db_upload(engine, rest_db.messages_table, MESSAGES_FILE)
     console.print("🔗 Notebook is ready! http://localhost:8080")
 
 
 @app.command()
 def down(remove_volumes: bool = True):
     """Shut down backing services"""
-    with status_progress:
-        task = status_progress.add_task("Shutting down backing services...", total=1)
-        _stop_compose(remove_volumes=remove_volumes)
-        status_progress.update(
-            task, description="Backing services stopped!", completed=1
-        )
+    _stop_compose(remove_volumes=remove_volumes)

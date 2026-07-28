@@ -6,7 +6,7 @@ from pyarrow.csv import read_csv
 
 
 class Client:
-    def __init__(self, location: str = "grpc://localhost:3000"):
+    def __init__(self, location: str = "grpc://localhost:7000"):
         self._client = flight.FlightClient(location=location)
 
     def fetch_data(self, dataset: str) -> pl.DataFrame:

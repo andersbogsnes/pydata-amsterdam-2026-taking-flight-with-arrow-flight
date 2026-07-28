@@ -7,7 +7,11 @@ stop_app = cyclopts.App(name="stop")
 def _stop_compose(services: list[str] | None, remove_volumes: bool = True) -> None:
     docker = DockerClient()
     docker.compose.down(
-        services=services, quiet=True, remove_orphans=True, volumes=remove_volumes, timeout=10
+        services=services,
+        quiet=True,
+        remove_orphans=True,
+        volumes=remove_volumes,
+        timeout=10,
     )
 
 
