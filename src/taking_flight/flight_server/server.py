@@ -9,6 +9,7 @@ import pyarrow.parquet as pq
 from pyarrow import flight
 from pyarrow.fs import FileSystem
 from pyiceberg.catalog.rest import RestCatalog
+from pyiceberg.exceptions import NoSuchTableError
 
 from taking_flight.flight_server import metrics
 from taking_flight.flight_server.models import (
@@ -69,7 +70,7 @@ class Server(flight.FlightServerBase):
         )
 
     def do_get(
-            self, context: flight.ServerCallContext, ticket: flight.Ticket
+            self, _: flight.ServerCallContext, ticket: flight.Ticket
     ) -> flight.FlightDataStream:
         """
         When a client calls get_flight_info, it will get a Ticket which we defined.
@@ -98,15 +99,17 @@ class Server(flight.FlightServerBase):
         )
 
     def get_schema(
-            self, context: flight.ServerCallContext, descriptor: flight.FlightDescriptor
+            self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
     ) -> flight.SchemaResult:
         """Get the schema of the dataset."""
-        dataset_name = descriptor.path[0].decode("utf-8")
-        with self._dataset_repo as repo:
-            dataset = repo.get_dataset(dataset_name)
-        if dataset is None:
-            raise flight.FlightServerError(f"{dataset_name} not found")
-        schema = pq.read_schema(dataset.location, filesystem=self._fs)
+        table_name = descriptor.path[0].decode("utf-8")
+
+        try:
+            table = self._catalog.load_table(table_name)
+        except NoSuchTableError:
+            raise flight.FlightServerError(f"{table_name} not found")
+
+        schema = table.schema().as_arrow()
         return flight.SchemaResult(schema)
 
     def get_flight_info(
@@ -160,7 +163,7 @@ class Server(flight.FlightServerBase):
 
         with table.transaction() as tx:
             for chunk in reader:
-                pa_table = pa.Table.from_batches([chunk.data], schema=table.schema().as_arrow())
+                pa_table = pa.Table.from_batches([chunk.data], table.schema().as_arrow())
                 tx.append(pa_table)
 
         meta = table.current_snapshot()
