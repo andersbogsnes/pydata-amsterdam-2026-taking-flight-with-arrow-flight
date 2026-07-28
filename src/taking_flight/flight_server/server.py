@@ -47,27 +47,40 @@ class Server(flight.FlightServerBase):
         self._catalog = catalog
         self._namespace = namespace
 
-    def _make_flight_info(self, dataset: Dataset) -> flight.FlightInfo:
+    def _make_flight_info(self, identifier: str) -> flight.FlightInfo:
         """
-        FlightInfo is the metadata for a dataset. We store the metadata in a database,
-        but that is entirely optional.
+        FlightInfo is the metadata for a dataset. We make it from the Iceberg table metadata
         """
-        table = self._catalog.load_table(dataset.identifier)
+        try:
+            table = self._catalog.load_table(identifier)
+        except NoSuchTableError:
+            raise flight.FlightServerError(f"{identifier} not found")
+
+
+        ticket = flight.Ticket(identifier)
 
         endpoints = [
             flight.FlightEndpoint(
-                dataset.model_dump_json().encode("utf-8"),
-                [self._location, *self._workers],
+                ticket=ticket,
+                locations=[self._location, *self._workers],
             )
         ]
 
+        snapshot = table.current_snapshot()
+        num_rows = -1
+        total_bytes = -1
+
+        if snapshot is not None and snapshot.summary is not None:
+            num_rows = snapshot.summary.get("total-records", -1)
+            total_bytes = snapshot.summary.get("total-files-size", -1)
+
         return flight.FlightInfo(
             schema=table.schema().as_arrow(),
-            descriptor=flight.FlightDescriptor.for_path(dataset.identifier),
+            descriptor=flight.FlightDescriptor.for_path(identifier),
             endpoints=endpoints,
-            total_records=dataset.num_rows,
-            total_bytes=dataset.serialized_size,
-            app_metadata=json.dumps({"description": dataset.description}),
+            total_records=num_rows,
+            total_bytes=total_bytes,
+            app_metadata=json.dumps({"description": table.properties.get("description", "")}),
         )
 
     def do_get(
@@ -114,7 +127,7 @@ class Server(flight.FlightServerBase):
         return flight.SchemaResult(schema)
 
     def get_flight_info(
-            self, context: flight.ServerCallContext, descriptor: flight.FlightDescriptor
+            self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
     ) -> flight.FlightInfo:
         """The client can ask for the metadata for a dataset by calling get_flight_info.
         They will use a human-readable FlightDescriptor to describe the dataset they want.
@@ -125,12 +138,8 @@ class Server(flight.FlightServerBase):
         from, build a Ticket for the Client to use to ask for the actual data, and provide
         some metadata such as the schema, number of rows, and size.
         """
-        dataset_name = descriptor.path[0].decode("utf-8")
-        with self._dataset_repo as repo:
-            dataset = repo.get_dataset(dataset_name)
-        if dataset is None:
-            raise flight.FlightServerError(f"{dataset_name} not found")
-        return self._make_flight_info(dataset)
+        identifier = descriptor.path[0].decode("utf-8")
+        return self._make_flight_info(identifier)
 
     def list_flights(
             self, context: flight.ServerCallContext, criteria: bytes
@@ -139,10 +148,14 @@ class Server(flight.FlightServerBase):
          flights and can send criteria to filter, where the criteria implementation is up to
         the implementer.
         """
-        with self._dataset_repo as repo:
-            datasets = repo.get_datasets(name_filter=criteria.decode("utf-8"))
-            for dataset in datasets:
-                yield self._make_flight_info(dataset)
+        filter_match = criteria.decode("utf-8")
+        # catalog.list_tables returns a tuple of (namespace, table_name)
+        table_identifiers = [".".join(t)
+                             for t in self._catalog.list_tables(self._namespace)
+                             if filter_match.lower() in t[1].lower()]
+
+        for identifier in table_identifiers:
+            yield self._make_flight_info(identifier)
 
     def do_put(
             self,
