@@ -7,7 +7,8 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from pyarrow import flight
-from pyarrow.fs import FileSystem, FileType
+from pyarrow.fs import FileSystem
+from pyiceberg.catalog.rest import RestCatalog
 
 from taking_flight.flight_server import metrics
 from taking_flight.flight_server.models import (
@@ -16,7 +17,6 @@ from taking_flight.flight_server.models import (
     UpdateDatasetRequest,
 )
 from taking_flight.flight_server.repo import DatasetRepo
-from pyiceberg.catalog.rest import RestCatalog
 
 
 class Server(flight.FlightServerBase):
@@ -36,6 +36,7 @@ class Server(flight.FlightServerBase):
             location: str = "grpc://localhost:3000",
             workers: list[str] | None = None,
             auth_handler: flight.ServerAuthHandler | None = None,
+            namespace: str = "default",
     ):
         super().__init__(location=location, auth_handler=auth_handler)
         self._bucket_name = bucket_name
@@ -44,6 +45,7 @@ class Server(flight.FlightServerBase):
         self._dataset_repo = dataset_repo
         self._workers = [] if workers is None else workers
         self._catalog = catalog
+        self._namespace = namespace
 
     def _make_flight_info(self, dataset: Dataset) -> flight.FlightInfo:
         """
@@ -139,7 +141,7 @@ class Server(flight.FlightServerBase):
 
     def do_put(
             self,
-            context: flight.ServerCallContext,
+            _: flight.ServerCallContext,
             descriptor: flight.FlightDescriptor,
             reader: flight.FlightStreamReader,
             writer: flight.FlightMetadataWriter,
@@ -148,35 +150,24 @@ class Server(flight.FlightServerBase):
         Arrow Table, and the server will write it to storage. It can also send metadata back
         to the client, such as the number of rows written.
         """
-        dataset_name = descriptor.path[0].decode("utf-8")
+        table_name = f"{self._namespace}.{descriptor.path[0].decode("utf-8")}"
 
-        location = f"{self._bucket_name}/{dataset_name}.parquet"
+        if not self._catalog.table_exists(table_name):
+            table = self._catalog.create_table(table_name, reader.schema)
+        else:
+            table = self._catalog.load_table(table_name)
 
-        if self._fs.get_file_info(location).type != FileType.NotFound:
-            raise flight.FlightServerError(f"{dataset_name} already exists")
-
-        with pq.ParquetWriter(location, filesystem=self._fs, schema=reader.schema) as w:
+        with table.transaction() as tx:
             for chunk in reader:
-                w.write_batch(chunk.data)
+                pa_table = pa.Table.from_batches([chunk.data], schema=table.schema().as_arrow())
+                tx.append(pa_table)
 
-        written_file = pq.ParquetFile(location, filesystem=self._fs)
+        meta = table.current_snapshot()
 
-        size = self._fs.get_file_info(location).size
-
-        dataset = Dataset(
-            name=dataset_name,
-            bucket=self._bucket_name,
-            file_name=f"{dataset_name}.parquet",
-            file_type="parquet",
-            num_partitions=written_file.metadata.num_row_groups,
-            num_rows=written_file.metadata.num_rows,
-            serialized_size=size,
-        )
-
-        # Update the metadata
-        with self._dataset_repo as repo:
-            repo.create_dataset(dataset)
-        msg = f"Wrote {dataset.num_rows} rows to {dataset.location}".encode("utf-8")
+        if meta is None:
+            msg = f"No current snapshot for {table_name}".encode("utf-8")
+        else:
+            msg = f"Wrote {meta.added_rows} rows to {table_name}".encode("utf-8")
         writer.write(msg)
 
     def list_actions(
