@@ -5,18 +5,15 @@ from typing import Iterator, cast
 import polars as pl
 import pyarrow as pa
 from pyarrow import flight
-from pyarrow.fs import FileSystem
 from pyiceberg.catalog.rest import RestCatalog
 from pyiceberg.exceptions import NoSuchTableError
 from pyiceberg.expressions import GreaterThanOrEqual, LessThanOrEqual
 
 from taking_flight.flight_server import metrics
 from taking_flight.flight_server.models import (
-    Dataset,
     DeleteDatasetRequest,
-    UpdateDatasetRequest,
+    UpdateDatasetRequest, GetDatasetRequest,
 )
-from taking_flight.flight_server.repo import DatasetRepo
 
 
 class Server(flight.FlightServerBase):
@@ -29,20 +26,14 @@ class Server(flight.FlightServerBase):
 
     def __init__(
             self,
-            fs: FileSystem,
-            dataset_repo: DatasetRepo,
             catalog: RestCatalog,
-            bucket_name: str = "events",
             location: str = "grpc://localhost:3000",
             workers: list[str] | None = None,
             auth_handler: flight.ServerAuthHandler | None = None,
             namespace: str = "default",
     ):
         super().__init__(location=location, auth_handler=auth_handler)
-        self._bucket_name = bucket_name
         self._location = location
-        self._fs = fs
-        self._dataset_repo = dataset_repo
         self._workers = [] if workers is None else workers
         self._catalog = catalog
         self._namespace = namespace
@@ -56,8 +47,7 @@ class Server(flight.FlightServerBase):
         except NoSuchTableError:
             raise flight.FlightServerError(f"{identifier} not found")
 
-
-        ticket = flight.Ticket(identifier)
+        ticket = flight.Ticket(GetDatasetRequest(identifier=identifier).model_dump_json().encode("utf-8"))
 
         endpoints = [
             flight.FlightEndpoint(
@@ -92,11 +82,14 @@ class Server(flight.FlightServerBase):
         only meant for the server to understand.
         """
         # We decided on JSON for the ticket payload, so we decode it here.
-        dataset = Dataset.model_validate_json(ticket.ticket.decode("utf-8"))
+        request = GetDatasetRequest.model_validate_json(ticket.ticket.decode("utf-8"))
 
-        table = self._catalog.load_table(dataset.identifier)
+        table = self._catalog.load_table(request.identifier)
 
-        reader = table.scan().to_arrow_batch_reader()
+        reader = table.scan(
+            selected_fields=request.columns,
+            row_filter=request.filters,
+        ).to_arrow_batch_reader()
 
         def gen():
             try:
@@ -142,7 +135,7 @@ class Server(flight.FlightServerBase):
         return self._make_flight_info(identifier)
 
     def list_flights(
-            self, context: flight.ServerCallContext, criteria: bytes
+            self, _: flight.ServerCallContext, criteria: bytes
     ) -> Iterator[flight.FlightInfo]:
         """Flight has native support for data discovery. The client can ask for all available
          flights and can send criteria to filter, where the criteria implementation is up to

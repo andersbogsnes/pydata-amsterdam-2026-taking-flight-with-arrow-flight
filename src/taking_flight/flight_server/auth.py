@@ -2,7 +2,7 @@ import json
 from logging import getLogger
 
 from pyarrow import flight
-# These types are not yet exported as public types
+# These types are not yet exported as public types https://github.com/apache/arrow/issues/44909
 from pyarrow._flight import ServerAuthSender, ServerAuthReader, ClientAuthReader, ClientAuthSender  # type: ignore
 
 logger = getLogger(__name__)
@@ -22,7 +22,7 @@ class TokenServerAuthHandler(flight.ServerAuthHandler):
         logger.info("Token is valid - returning valid token")
         outgoing.write(received)
 
-    def is_valid(self, token):
+    def is_valid(self, token) -> str:
         """This is called by the Flight server to check if a token is still valid."""
         if not token:
             logger.info("No token provided, assuming user")
