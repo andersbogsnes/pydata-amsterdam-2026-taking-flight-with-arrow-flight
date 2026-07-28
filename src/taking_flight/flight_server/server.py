@@ -16,6 +16,7 @@ from taking_flight.flight_server.models import (
     UpdateDatasetRequest,
 )
 from taking_flight.flight_server.repo import DatasetRepo
+from pyiceberg.catalog.rest import RestCatalog
 
 
 class Server(flight.FlightServerBase):
@@ -30,6 +31,7 @@ class Server(flight.FlightServerBase):
             self,
             fs: FileSystem,
             dataset_repo: DatasetRepo,
+            catalog: RestCatalog,
             bucket_name: str = "events",
             location: str = "grpc://localhost:3000",
             workers: list[str] | None = None,
@@ -41,6 +43,7 @@ class Server(flight.FlightServerBase):
         self._fs = fs
         self._dataset_repo = dataset_repo
         self._workers = [] if workers is None else workers
+        self._catalog = catalog
 
     def _make_flight_info(self, dataset: Dataset) -> flight.FlightInfo:
         """

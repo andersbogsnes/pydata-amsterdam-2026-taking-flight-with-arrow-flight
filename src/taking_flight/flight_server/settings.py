@@ -12,3 +12,4 @@ class Settings(BaseSettings):
         "postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
     )
     bucket_name: str = "events"
+    catalog_url: str = "http://localhost:8181"
