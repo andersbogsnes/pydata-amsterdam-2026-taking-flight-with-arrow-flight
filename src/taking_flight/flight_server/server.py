@@ -4,8 +4,6 @@ from typing import Iterator, cast
 
 import polars as pl
 import pyarrow as pa
-import pyarrow.compute as pc
-import pyarrow.parquet as pq
 from pyarrow import flight
 from pyarrow.fs import FileSystem
 from pyiceberg.catalog.rest import RestCatalog
@@ -54,16 +52,18 @@ class Server(flight.FlightServerBase):
         FlightInfo is the metadata for a dataset. We store the metadata in a database,
         but that is entirely optional.
         """
-        data = pq.ParquetFile(dataset.location, filesystem=self._fs)
+        table = self._catalog.load_table(dataset.identifier)
+
         endpoints = [
             flight.FlightEndpoint(
                 dataset.model_dump_json().encode("utf-8"),
                 [self._location, *self._workers],
             )
         ]
+
         return flight.FlightInfo(
-            schema=data.schema_arrow,
-            descriptor=flight.FlightDescriptor.for_path(dataset.name),
+            schema=table.schema().as_arrow(),
+            descriptor=flight.FlightDescriptor.for_path(dataset.identifier),
             endpoints=endpoints,
             total_records=dataset.num_rows,
             total_bytes=dataset.serialized_size,
@@ -266,10 +266,9 @@ class Server(flight.FlightServerBase):
 
                 total_data = table.scan(
                     row_filter=GreaterThanOrEqual(term="date", value=min_date) & LessThanOrEqual(term="date",
-                                                                                                     value=max_date),
+                                                                                                 value=max_date),
                     selected_fields=("date", "is_clicked"),
                 ).to_arrow()
-
 
                 total_ctr = metrics.calculate_ctr(total_data)
                 result = total_ctr.append_column("sample_ctr", sample_ctr["click_rate"])
