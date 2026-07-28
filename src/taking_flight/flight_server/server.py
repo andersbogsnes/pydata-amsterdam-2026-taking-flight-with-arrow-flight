@@ -237,16 +237,23 @@ class Server(flight.FlightServerBase):
                 request = UpdateDatasetRequest.model_validate_json(
                     action.body.to_pybytes().decode("utf-8")
                 )
-                with self._dataset_repo as repo:
-                    repo.update_dataset(request)
+                try:
+                    table = self._catalog.load_table(request.name)
+                except NoSuchTableError:
+                    raise flight.FlightServerError(f"Table {request.name} does not exist")
+                with table.transaction() as tx:
+                    tx.set_properties({"description": request.description})
+
                 yield f"Updated dataset {request.name} description".encode("utf-8")
             case "delete_dataset":
                 request = DeleteDatasetRequest.model_validate_json(
                     action.body.to_pybytes().decode("utf-8")
                 )
-                with self._dataset_repo as repo:
-                    repo.delete_dataset(request.name)
-                self._fs.delete_file(f"{self._bucket_name}/{request.name}.parquet")
+                try:
+                    self._catalog.drop_table(request.name)
+                except NoSuchTableError:
+                    raise flight.FlightServerError(f"Table {request.name} does not exist")
+
                 yield f"Deleted dataset {request.name}".encode("utf-8")
             case "get_active_user":
                 user = context.peer_identity()
