@@ -1,6 +1,7 @@
 import datetime as dt
 import json
-from typing import Iterator, cast
+from collections.abc import Iterator
+from typing import cast
 
 import polars as pl
 import pyarrow as pa
@@ -12,7 +13,8 @@ from pyiceberg.expressions import GreaterThanOrEqual, LessThanOrEqual
 from taking_flight.flight_server import metrics
 from taking_flight.flight_server.models import (
     DeleteDatasetRequest,
-    UpdateDatasetRequest, GetDatasetRequest,
+    GetDatasetRequest,
+    UpdateDatasetRequest,
 )
 
 
@@ -25,12 +27,12 @@ class Server(flight.FlightServerBase):
     """
 
     def __init__(
-            self,
-            catalog: RestCatalog,
-            location: str = "grpc://localhost:3000",
-            workers: list[str] | None = None,
-            auth_handler: flight.ServerAuthHandler | None = None,
-            namespace: str = "default",
+        self,
+        catalog: RestCatalog,
+        location: str = "grpc://localhost:7000",
+        workers: list[str] | None = None,
+        auth_handler: flight.ServerAuthHandler | None = None,
+        namespace: str = "default",
     ):
         super().__init__(location=location, auth_handler=auth_handler)
         self._location = location
@@ -47,7 +49,9 @@ class Server(flight.FlightServerBase):
         except NoSuchTableError:
             raise flight.FlightServerError(f"{identifier} not found")
 
-        ticket = flight.Ticket(GetDatasetRequest(identifier=identifier).model_dump_json().encode("utf-8"))
+        ticket = flight.Ticket(
+            GetDatasetRequest(identifier=identifier).model_dump_json().encode("utf-8")
+        )
 
         endpoints = [
             flight.FlightEndpoint(
@@ -70,11 +74,13 @@ class Server(flight.FlightServerBase):
             endpoints=endpoints,
             total_records=num_rows,
             total_bytes=total_bytes,
-            app_metadata=json.dumps({"description": table.properties.get("description", "")}),
+            app_metadata=json.dumps(
+                {"description": table.properties.get("description", "")}
+            ),
         )
 
     def do_get(
-            self, _: flight.ServerCallContext, ticket: flight.Ticket
+        self, _: flight.ServerCallContext, ticket: flight.Ticket
     ) -> flight.FlightDataStream:
         """
         When a client calls get_flight_info, it will get a Ticket which we defined.
@@ -93,8 +99,7 @@ class Server(flight.FlightServerBase):
 
         def gen():
             try:
-                for batch in reader:
-                    yield batch
+                yield from reader
             finally:
                 # Always close the dataset when we're done.'
                 reader.close()
@@ -106,7 +111,7 @@ class Server(flight.FlightServerBase):
         )
 
     def get_schema(
-            self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
+        self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
     ) -> flight.SchemaResult:
         """Get the schema of the dataset."""
         table_name = descriptor.path[0].decode("utf-8")
@@ -120,7 +125,7 @@ class Server(flight.FlightServerBase):
         return flight.SchemaResult(schema)
 
     def get_flight_info(
-            self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
+        self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
     ) -> flight.FlightInfo:
         """The client can ask for the metadata for a dataset by calling get_flight_info.
         They will use a human-readable FlightDescriptor to describe the dataset they want.
@@ -135,7 +140,7 @@ class Server(flight.FlightServerBase):
         return self._make_flight_info(identifier)
 
     def list_flights(
-            self, _: flight.ServerCallContext, criteria: bytes
+        self, _: flight.ServerCallContext, criteria: bytes
     ) -> Iterator[flight.FlightInfo]:
         """Flight has native support for data discovery. The client can ask for all available
          flights and can send criteria to filter, where the criteria implementation is up to
@@ -143,25 +148,27 @@ class Server(flight.FlightServerBase):
         """
         filter_match = criteria.decode("utf-8")
         # catalog.list_tables returns a tuple of (namespace, table_name)
-        table_identifiers = [".".join(t)
-                             for t in self._catalog.list_tables(self._namespace)
-                             if filter_match.lower() in t[1].lower()]
+        table_identifiers = [
+            ".".join(t)
+            for t in self._catalog.list_tables(self._namespace)
+            if filter_match.lower() in t[1].lower()
+        ]
 
         for identifier in table_identifiers:
             yield self._make_flight_info(identifier)
 
     def do_put(
-            self,
-            _: flight.ServerCallContext,
-            descriptor: flight.FlightDescriptor,
-            reader: flight.FlightStreamReader,
-            writer: flight.FlightMetadataWriter,
+        self,
+        _: flight.ServerCallContext,
+        descriptor: flight.FlightDescriptor,
+        reader: flight.FlightStreamReader,
+        writer: flight.FlightMetadataWriter,
     ):
         """Do_put is responsible for writing the data to storage. The client will send an
         Arrow Table, and the server will write it to storage. It can also send metadata back
         to the client, such as the number of rows written.
         """
-        table_name = f"{self._namespace}.{descriptor.path[0].decode("utf-8")}"
+        table_name = f"{self._namespace}.{descriptor.path[0].decode('utf-8')}"
 
         if not self._catalog.table_exists(table_name):
             table = self._catalog.create_table(table_name, reader.schema)
@@ -170,20 +177,20 @@ class Server(flight.FlightServerBase):
 
         with table.transaction() as tx:
             for chunk in reader:
-                pa_table = pa.Table.from_batches([chunk.data], table.schema().as_arrow())
+                pa_table = pa.Table.from_batches(
+                    [chunk.data], table.schema().as_arrow()
+                )
                 tx.append(pa_table)
 
         meta = table.current_snapshot()
 
         if meta is None:
-            msg = f"No current snapshot for {table_name}".encode("utf-8")
+            msg = f"No current snapshot for {table_name}".encode()
         else:
-            msg = f"Wrote {meta.added_rows} rows to {table_name}".encode("utf-8")
+            msg = f"Wrote {meta.added_rows} rows to {table_name}".encode()
         writer.write(msg)
 
-    def list_actions(
-            self, context: flight.ServerCallContext
-    ) -> Iterator[flight.ActionType]:
+    def list_actions(self, _: flight.ServerCallContext) -> Iterator[flight.ActionType]:
         """Flight has native support for actions.
         Actions are a way to perform arbitrary operations, and list_actions is a discovery
         mechanism for the client to find out what actions are available.
@@ -209,18 +216,20 @@ class Server(flight.FlightServerBase):
             ),
             (
                 "get_active_user",
-                json.dumps({
-                    "description": "Get the active user",
-                    "schema": None,
-                })
-            )
+                json.dumps(
+                    {
+                        "description": "Get the active user",
+                        "schema": None,
+                    }
+                ),
+            ),
         ]
 
         for action in actions:
             yield flight.ActionType(action[0], action[1])
 
     def do_action(
-            self, context: flight.ServerCallContext, action: flight.Action
+        self, context: flight.ServerCallContext, action: flight.Action
     ) -> Iterator[bytes]:
         """When the client wants to perform an action, it will send an Action via do_action.
         What that action does is completely up to the implementation.
@@ -233,11 +242,13 @@ class Server(flight.FlightServerBase):
                 try:
                     table = self._catalog.load_table(request.name)
                 except NoSuchTableError:
-                    raise flight.FlightServerError(f"Table {request.name} does not exist")
+                    raise flight.FlightServerError(
+                        f"Table {request.name} does not exist"
+                    )
                 with table.transaction() as tx:
                     tx.set_properties({"description": request.description})
 
-                yield f"Updated dataset {request.name} description".encode("utf-8")
+                yield f"Updated dataset {request.name} description".encode()
             case "delete_dataset":
                 request = DeleteDatasetRequest.model_validate_json(
                     action.body.to_pybytes().decode("utf-8")
@@ -245,9 +256,11 @@ class Server(flight.FlightServerBase):
                 try:
                     self._catalog.drop_table(request.name)
                 except NoSuchTableError:
-                    raise flight.FlightServerError(f"Table {request.name} does not exist")
+                    raise flight.FlightServerError(
+                        f"Table {request.name} does not exist"
+                    )
 
-                yield f"Deleted dataset {request.name}".encode("utf-8")
+                yield f"Deleted dataset {request.name}".encode()
             case "get_active_user":
                 user = context.peer_identity()
                 yield user
@@ -255,11 +268,11 @@ class Server(flight.FlightServerBase):
                 raise flight.FlightServerError(f"Unknown action: {action.type}")
 
     def do_exchange(
-            self,
-            _: flight.ServerCallContext,
-            descriptor: flight.FlightDescriptor,
-            reader: flight.FlightStreamReader,
-            writer: flight.FlightStreamWriter,
+        self,
+        _: flight.ServerCallContext,
+        descriptor: flight.FlightDescriptor,
+        reader: flight.FlightStreamReader,
+        writer: flight.FlightStreamWriter,
     ):
         """Flight can receive and send data within the same call using do_exchange.
         This is commonly used for enriching data, such as calling an ML model to enrich the data,
@@ -278,8 +291,8 @@ class Server(flight.FlightServerBase):
                 table = self._catalog.load_table(f"{self.namespace}.metrics")
 
                 total_data = table.scan(
-                    row_filter=GreaterThanOrEqual(term="date", value=min_date) & LessThanOrEqual(term="date",
-                                                                                                 value=max_date),
+                    row_filter=GreaterThanOrEqual(term="date", value=min_date)
+                    & LessThanOrEqual(term="date", value=max_date),
                     selected_fields=("date", "is_clicked"),
                 ).to_arrow()
 

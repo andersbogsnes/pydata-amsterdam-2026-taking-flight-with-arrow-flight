@@ -6,10 +6,11 @@ readme = "README.md"
 authors = [
     { name = "Anders Bogsnes", email = "andersbognes@gmail.com" }
 ]
-requires-python = ">=3.14"
+requires-python = ">=3.10,<3.14"
 dependencies = [
     "cyclopts>=4.22.2",
     "fastapi>=0.140.7",
+    "httpx2>=2.9.1",
     "jupyterlab>=4.6.2",
     "polars>=1.43.1",
     "psycopg[binary]>=3.3.4",

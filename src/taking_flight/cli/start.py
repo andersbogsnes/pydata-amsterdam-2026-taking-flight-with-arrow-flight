@@ -1,9 +1,4 @@
-import logging
-import sys
-
 from cyclopts import App
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", stream=sys.stdout)
 
 app = App("start", help="Start the specified application")
 
@@ -21,21 +16,25 @@ def rest():
 def server():
     import signal
     import threading
+
     from pyiceberg.catalog.rest import RestCatalog
 
-    from taking_flight.flight_server.server import Server
-    from taking_flight.flight_server.settings import Settings
     from taking_flight.flight_server.auth import TokenServerAuthHandler
+    from taking_flight.flight_server.server import Server
+    from taking_flight.settings import Settings
 
     settings = Settings()
 
-    catalog = RestCatalog("default", **{
-        "uri": settings.catalog_url,
-        "warehouse": "default",
-    })
+    catalog = RestCatalog(
+        "default",
+        uri=settings.catalog_url,
+        warehouse="default",
+    )
     auth = TokenServerAuthHandler(token="copenhagendataengineering")
 
-    flight_server = Server(catalog=catalog, location=settings.location, auth_handler=auth)
+    flight_server = Server(
+        catalog=catalog, location=settings.flight_server_url, auth_handler=auth
+    )
 
     is_shutting_down = False
 
@@ -52,5 +51,5 @@ def server():
     signal.signal(signal.SIGINT, shutdown_server)
     signal.signal(signal.SIGTERM, shutdown_server)
 
-    app.console.print(f"Serving at {settings.location}")
+    app.console.print(f"Serving at {settings.flight_server_url}")
     flight_server.serve()

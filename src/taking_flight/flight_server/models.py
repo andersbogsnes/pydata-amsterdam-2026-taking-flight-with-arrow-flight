@@ -11,6 +11,7 @@ class UpdateDatasetRequest(BaseModel):
     name: str
     description: str
 
+
 class GetDatasetRequest(BaseModel):
     identifier: str
     columns: tuple[str] = ("*",)
