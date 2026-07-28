@@ -1,4 +1,5 @@
 from typing import Literal
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict
 
@@ -15,6 +16,8 @@ class UpdateDatasetRequest(BaseModel):
 class Dataset(BaseModel):
     name: str
     bucket: str
+    namespace: str
+    table_name: str
     file_name: str
     description: str | None = None
     file_type: Literal["parquet"] = "parquet"
@@ -23,7 +26,11 @@ class Dataset(BaseModel):
     serialized_size: int | None = None
 
     @property
-    def location(self) -> str:
+    def identifier(self: Self) -> str:
+        return f"{self.namespace}.{self.table_name}"
+
+    @property
+    def location(self: Self) -> str:
         return f"{self.bucket}/{self.file_name}"
 
     model_config = ConfigDict(from_attributes=True)

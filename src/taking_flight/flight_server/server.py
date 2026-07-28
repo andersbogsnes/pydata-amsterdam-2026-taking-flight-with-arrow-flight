@@ -79,20 +79,21 @@ class Server(flight.FlightServerBase):
         # We decided on JSON for the ticket payload, so we decode it here.
         dataset = Dataset.model_validate_json(ticket.ticket.decode("utf-8"))
 
-        # Using the ticket payload, we can open the dataset and return a stream of batches.
-        table = pq.ParquetFile(dataset.location, filesystem=self._fs, pre_buffer=True)
+        table = self._catalog.load_table(dataset.identifier)
+
+        reader = table.scan().to_arrow_batch_reader()
 
         def gen():
             try:
-                for batch in table.iter_batches(batch_size=256_000):
+                for batch in reader:
                     yield batch
             finally:
                 # Always close the dataset when we're done.'
-                table.close()
+                reader.close()
 
         # Because Flight is GRPC-based, it supports streaming the data by default.
         return flight.GeneratorStream(
-            schema=table.schema_arrow,
+            schema=table.schema().as_arrow(),
             generator=gen(),
         )
 
