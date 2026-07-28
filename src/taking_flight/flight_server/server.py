@@ -10,6 +10,7 @@ from pyarrow import flight
 from pyarrow.fs import FileSystem
 from pyiceberg.catalog.rest import RestCatalog
 from pyiceberg.exceptions import NoSuchTableError
+from pyiceberg.expressions import GreaterThanOrEqual, LessThanOrEqual
 
 from taking_flight.flight_server import metrics
 from taking_flight.flight_server.models import (
@@ -242,7 +243,7 @@ class Server(flight.FlightServerBase):
 
     def do_exchange(
             self,
-            context: flight.ServerCallContext,
+            _: flight.ServerCallContext,
             descriptor: flight.FlightDescriptor,
             reader: flight.FlightStreamReader,
             writer: flight.FlightStreamWriter,
@@ -260,14 +261,16 @@ class Server(flight.FlightServerBase):
                 max_date = cast(dt.date, df["date"].max())
 
                 sample_ctr = metrics.calculate_ctr(sample_ctr_data)
-                total_data = pq.read_table(
-                    f"{self._bucket_name}/messages.parquet",
-                    columns=["date", "is_clicked"],
-                    filesystem=self._fs,
-                    filters=(
-                            (pc.field("date") >= min_date) & (pc.field("date") <= max_date)
-                    ),
-                )
+
+                table = self._catalog.load_table(f"{self.namespace}.metrics")
+
+                total_data = table.scan(
+                    row_filter=GreaterThanOrEqual(term="date", value=min_date) & LessThanOrEqual(term="date",
+                                                                                                     value=max_date),
+                    selected_fields=("date", "is_clicked"),
+                ).to_arrow()
+
+
                 total_ctr = metrics.calculate_ctr(total_data)
                 result = total_ctr.append_column("sample_ctr", sample_ctr["click_rate"])
                 writer.begin(result.schema)
