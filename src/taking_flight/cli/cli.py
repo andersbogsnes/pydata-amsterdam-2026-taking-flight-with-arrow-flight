@@ -4,7 +4,7 @@ import cyclopts
 from cyclopts import Parameter
 from rich.text import Text
 
-from taking_flight.cli.bootstrap import app as bootstrap_app
+from taking_flight.cli.bootstrap.app import app as bootstrap_app
 from taking_flight.cli.console import console
 from taking_flight.cli.start import app as start_app
 from taking_flight.cli.stop import stop_app
