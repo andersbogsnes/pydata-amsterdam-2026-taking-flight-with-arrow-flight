@@ -30,7 +30,7 @@ def server():
         uri=settings.catalog_url,
         warehouse="default",
     )
-    auth = TokenServerAuthHandler(token="copenhagendataengineering")
+    auth = TokenServerAuthHandler(token="pydataamsterdam")
 
     flight_server = Server(
         catalog=catalog, location=settings.flight_server_url, auth_handler=auth
