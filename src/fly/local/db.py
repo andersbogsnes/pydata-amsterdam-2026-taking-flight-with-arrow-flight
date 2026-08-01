@@ -5,7 +5,11 @@ from collections.abc import Iterator
 import pyarrow as pa
 import pyarrow.csv
 import sqlalchemy as sa
+from rich.progress import Progress, BarColumn, DownloadColumn, TransferSpeedColumn, \
+    TimeRemainingColumn
 from sqlalchemy.engine.interfaces import DBAPIConnection
+
+from fly.console import console
 
 
 def _upload_message_to_db(
@@ -37,3 +41,34 @@ def _upload_message_to_db(
                 pyarrow.csv.write_csv(batch, buf, write_options=write_options)
                 copy.write(buf.getvalue())
                 yield f.tell()
+
+
+def _handle_db_upload(engine: sa.Engine, db_table: sa.Table, data_file: pathlib.Path):
+    """Uploads the data file to the DB table - wraps the inner upload loop with progress bars"""
+    with engine.begin() as conn:
+        sql = sa.select(sa.func.count(db_table.c.id))
+        row_count = conn.execute(sql).scalar_one()
+        if row_count > 0:
+            console.print(
+                f"[green]✔[/green] DB {db_table.name} already has records - skipping"
+            )
+            return
+
+    with  Progress(
+            "[progress.description]{task.description}",
+            BarColumn(),
+            DownloadColumn(),
+            TransferSpeedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+    ) as transfer_progress:
+        upload_task = transfer_progress.add_task(
+            "Uploading messages to DB", total=data_file.stat().st_size
+        )
+        for completed_bytes in _upload_message_to_db(engine, db_table.name, data_file):
+            transfer_progress.update(upload_task, completed=completed_bytes)
+
+        transfer_progress.update(
+            upload_task, description="[green]✔[/green] Upload to db complete!"
+        )
+    transfer_progress.remove_task(upload_task)

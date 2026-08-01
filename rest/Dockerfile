@@ -1,9 +1,10 @@
 FROM python:3.13-slim AS builder
-COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /bin/
 
 # Copy from the cache instead of linking since it's a mounted volume
 ENV UV_LINK_MODE=copy \
     UV_NO_DEV=1 \
+    UV_PYTHON_DOWNLOADS=0 \
     UV_COMPILE_BYTECODE=1
 
 WORKDIR /app
@@ -11,15 +12,12 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-editable --no-install-project
+    uv sync --frozen --no-install-workspace
 
-COPY src src
-COPY README.md README.md
+COPY . /app
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-editable
+    uv sync --locked --no-editable --package rest
 
 FROM python:3.13-slim
 

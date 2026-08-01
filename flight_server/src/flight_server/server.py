@@ -8,15 +8,17 @@ import pyarrow as pa
 import structlog
 from pyarrow import flight
 from pyiceberg.catalog.rest import RestCatalog
-from pyiceberg.exceptions import NoSuchTableError, BadRequestError
+from pyiceberg.exceptions import NoSuchTableError, BadRequestError, RESTError
 from pyiceberg.expressions import GreaterThanOrEqual, LessThanOrEqual, AlwaysTrue
 
 from flight_server import metrics
+from flight_server.exceptions import IcebergCatalogueException
 from flight_server.models import (
     DeleteDatasetRequest,
     GetDatasetRequest,
-    UpdateDatasetRequest,
+    UpdateDatasetRequest, CreateNamespaceRequest,
 )
+from flight_server.settings import Settings
 
 logger: structlog.typing.FilteringBoundLogger = structlog.get_logger(__name__)
 
@@ -31,17 +33,39 @@ class Server(flight.FlightServerBase):
 
     def __init__(
             self,
-            catalog: RestCatalog,
+            settings: Settings,
             location: str = "grpc://localhost:7000",
             workers: list[str] | None = None,
             auth_handler: flight.ServerAuthHandler | None = None,
-            namespace: str = "events",
     ):
         super().__init__(location=location, auth_handler=auth_handler)
         self._location = location
         self._workers = [] if workers is None else workers
-        self._catalog = catalog
-        self._namespace = namespace
+        self._namespace = settings.namespace
+        self._rest_catalog = None
+        self._catalog_config = {
+            "uri": settings.catalog_url,
+            "warehouse": settings.warehouse,
+        }
+
+        if settings.mode == "aws":
+            aws_opts = {"rest.sigv4-enabled": "true",
+                        "rest.signing-name": "s3tables",
+                        "rest.signing-region": "eu-north-1"}
+            self._catalog_config |= aws_opts
+
+    @property
+    def _catalog(self) -> RestCatalog:
+        if self._rest_catalog is None:
+            try:
+                catalog = RestCatalog(
+                    "default",
+                    **self._catalog_config
+                )
+            except RESTError as e:
+                raise IcebergCatalogueException("unable to connect to Iceberg Catalog") from e
+            return catalog
+        return self._rest_catalog
 
     def _make_flight_info(self, identifier: str) -> flight.FlightInfo:
         """
@@ -232,6 +256,10 @@ class Server(flight.FlightServerBase):
         mechanism for the client to find out what actions are available.
         """
         actions = [
+            ("create_namespace", json.dumps({
+                "description": "Create a new namespace",
+                "schema": CreateNamespaceRequest.model_json_schema(),
+            })),
             (
                 "update_description",
                 json.dumps(
@@ -271,6 +299,11 @@ class Server(flight.FlightServerBase):
         What that action does is completely up to the implementation.
         """
         match action.type:
+            case "create_namespace":
+                request = CreateNamespaceRequest.model_validate_json(
+                    action.body.to_pybytes().decode("utf-8")
+                )
+                self._catalog.create_namespace(request.name)
             case "update_description":
                 request = UpdateDatasetRequest.model_validate_json(
                     action.body.to_pybytes().decode("utf-8")
