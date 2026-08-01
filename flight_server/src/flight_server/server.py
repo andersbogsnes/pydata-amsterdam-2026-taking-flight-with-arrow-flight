@@ -16,7 +16,7 @@ from flight_server.exceptions import IcebergCatalogueException
 from flight_server.models import (
     DeleteDatasetRequest,
     GetDatasetRequest,
-    UpdateDatasetRequest, CreateNamespaceRequest,
+    UpdateDatasetRequest, CreateNamespaceRequest, DoPutResponse,
 )
 from flight_server.settings import Settings
 
@@ -224,12 +224,13 @@ class Server(flight.FlightServerBase):
             table = self._catalog.load_table(table_name)
 
         with table.transaction() as tx:
-
+            total_rows = 0
             batches = []
             row_count = 0
             for chunk in reader:
                 batches.append(chunk.data)
                 row_count += chunk.data.num_rows
+                total_rows += chunk.data.num_rows
                 if row_count >= 1_000_000:
                     pa_table = pa.Table.from_batches(
                         batches, reader.schema
@@ -237,18 +238,15 @@ class Server(flight.FlightServerBase):
                     tx.append(pa_table)
                     batches = []
                     row_count = 0
+
             if batches:
                 pa_table = pa.Table.from_batches(batches, reader.schema)
                 tx.append(pa_table)
 
-        meta = table.current_snapshot()
-
-        if meta is None:
-            log.info("no snapshot available")
-            msg = f"No current snapshot for {table_name}".encode()
-        else:
-            msg = f"Wrote {meta.added_rows} rows to {table_name}".encode()
-        writer.write(msg)
+        response = DoPutResponse(
+            total_rows=total_rows,
+        )
+        writer.write(response.model_dump_json(exclude_unset=True).encode())
 
     def list_actions(self, _: flight.ServerCallContext) -> Iterator[flight.ActionType]:
         """Flight has native support for actions.

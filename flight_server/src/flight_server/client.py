@@ -1,11 +1,12 @@
 import pathlib
-from typing import Self
+from typing import Self, Iterator, overload, Literal
 
 import attrs
 import polars as pl
 import pyarrow.csv
 from pyarrow import flight
-import pyarrow as pa
+
+from flight_server import models
 from flight_server.models import CreateNamespaceRequest
 
 
@@ -18,17 +19,65 @@ class Client:
         client = flight.FlightClient(location)
         return cls(client=client)
 
-    def ping(self):
-        return self._client.wait_for_available()
+    def ping(self, timeout=5) -> None:
+        """Waits until the server is up and running.
+        Parameters
+        ----------
+        timeout: int
+            How long in seconds to wait
+        """
+        return self._client.wait_for_available(timeout=timeout)
 
     def fetch_data(self, table: str) -> pl.DataFrame:
+        """Fetches the data from the given table.
+
+        Parameters
+        ----------
+        table: str
+            The table to fetch the data from.
+
+        Returns
+        -------
+        pl.DataFrame
+            The data in the form of a polars table
+        """
         info = self._client.get_flight_info(flight.FlightDescriptor.for_path(table))
         reader: flight.FlightStreamReader = self._client.do_get(
             info.endpoints[0].ticket
         )
         return pl.DataFrame(reader.to_reader())
 
-    def upload_data(self, table: str, data: pathlib.Path, dtypes: dict | None = None) -> str:
+    @overload
+    def upload_data(self, table: str, data: pathlib.Path, dtypes: dict | None = None,
+                    with_progress: Literal[True] = True) -> Iterator[int]:
+        ...
+
+    @overload
+    def upload_data(self, table: str, data: pathlib.Path, dtypes: dict | None = None,
+                    with_progress: Literal[False] = False) -> models.DoPutResponse:
+        ...
+
+    def upload_data(self,
+                    table: str,
+                    data: pathlib.Path,
+                    dtypes: dict | None = None,
+                    with_progress: bool = False) -> Iterator[int] | models.DoPutResponse:
+        """Upload the data file to the given table.
+
+        Parameters
+        ----------
+        table: str
+            The tablename to upload the data to.
+        data: pathlib.Path
+            The path to the CSV file to upload.
+        dtypes: dict
+            Mapping of column names to dtypes. Passed to pyarrow.csv.ConvertOptions.
+        with_progress: bool
+            If true, return an iterator of bytes read. Used for progress bars
+        """
+        if data.suffix != ".csv":
+            raise NotImplementedError("unable to upload csv")
+
         descriptor = flight.FlightDescriptor.for_path(table)
         writer: flight.FlightStreamWriter
         reader: flight.FlightMetadataReader
@@ -51,12 +100,15 @@ class Client:
 
             for batch in csv_reader:
                 writer.write_batch(batch)
+                if with_progress:
+                    yield f.tell()
+
             writer.done_writing()
 
-        # Get the byte representation from the server
-        msg: pa.Buffer = reader.read()
-
-        return msg.to_pybytes().decode()
+            if not with_progress:
+                msg = reader.read()
+                return models.DoPutResponse.model_validate_json(msg.to_pybytes().decode())
+            return f.tell()
 
     def table_exists(self, table: str) -> bool:
         try:

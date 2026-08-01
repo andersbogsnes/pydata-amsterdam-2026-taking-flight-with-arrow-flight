@@ -1,8 +1,8 @@
 import pathlib
 
 import pyarrow as pa
-from rich.progress import Progress, BarColumn, DownloadColumn, TransferSpeedColumn, \
-    TimeRemainingColumn
+from rich.progress import Progress, TransferSpeedColumn, \
+    BarColumn, DownloadColumn, TimeRemainingColumn
 
 from flight_server.client import Client
 from fly.console import console
@@ -42,18 +42,18 @@ def _handle_iceberg_upload(
             console=console,
     ) as transfer_progress:
         upload_file_task = transfer_progress.add_task(
-            "Uploading messages to Iceberg", total=1
+            "Uploading messages to Iceberg", total=data_file.stat().st_size
         )
-        client.upload_data(table_name, data_file, dtypes={
+        for count in client.upload_data(table_name, data_file, dtypes={
             "platform": "string",
             "category": "string",
             "created_at": pa.timestamp("us"),
             "blocked_at": pa.timestamp("us"),
             "updated_at": pa.timestamp("us")
-        })
+        }, with_progress=True):
+            transfer_progress.update(
+                upload_file_task,
+                completed=count,
 
-        transfer_progress.update(
-            upload_file_task,
-            completed=1,
-            description="[green]✔[/green] Upload to Iceberg complete!"
-        )
+            )
+        transfer_progress.update(upload_file_task, description="[green]✔[/green] Upload to Iceberg complete!")
