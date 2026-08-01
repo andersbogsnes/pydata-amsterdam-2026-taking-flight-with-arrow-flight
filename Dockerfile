@@ -1,5 +1,5 @@
 FROM python:3.13-slim AS builder
-COPY --from=ghcr.io/astral-sh/uv:0.11.11 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /uvx /bin/
 
 # Copy from the cache instead of linking since it's a mounted volume
 ENV UV_LINK_MODE=copy \
