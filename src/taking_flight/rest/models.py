@@ -1,6 +1,6 @@
 import datetime
 
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel, TypeAdapter, ConfigDict
 
 
 class Message(BaseModel):
@@ -36,6 +36,8 @@ class Message(BaseModel):
     purchased_at: datetime.datetime | None
     created_at: datetime.datetime
     updated_at: datetime.datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 Messages = TypeAdapter(list[Message])

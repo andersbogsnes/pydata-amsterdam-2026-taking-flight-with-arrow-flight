@@ -1,0 +1,18 @@
+import secrets
+
+from fastapi import Depends, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBasic, HTTPBearer
+
+auth = HTTPBearer()
+
+
+def verify_user(bearer_token: HTTPAuthorizationCredentials = Depends(auth)):
+    if secrets.compare_digest(bearer_token.credentials, "pydatamstedam"):
+        return None
+    else:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
