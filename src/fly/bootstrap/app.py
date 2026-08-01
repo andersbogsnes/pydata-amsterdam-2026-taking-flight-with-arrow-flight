@@ -15,17 +15,17 @@ from rich.progress import (
     TransferSpeedColumn,
 )
 
-from taking_flight.cli.bootstrap.catalog import _bootstrap_catalog
-from taking_flight.cli.bootstrap.db import _upload_message_to_db
-from taking_flight.cli.bootstrap.iceberg import _upload_messages_to_iceberg
-from taking_flight.cli.bootstrap.services import (
+from fly.bootstrap.catalog import _bootstrap_catalog
+from fly.bootstrap.db import _upload_message_to_db
+from fly.bootstrap.iceberg import _upload_messages_to_iceberg
+from fly.bootstrap.services import (
     _create_bucket,
     _start_compose,
     _stop_compose,
 )
-from taking_flight.cli.console import console
-from taking_flight.rest import db as rest_db
-from taking_flight.settings import Settings
+from fly.console import console
+from rest import db as rest_db
+from fly.settings import Settings
 
 app = cyclopts.App(
     name="bootstrap", help="Start backing services and upload initial data"

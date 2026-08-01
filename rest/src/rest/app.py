@@ -3,14 +3,14 @@ from typing import AsyncIterable
 import sqlalchemy as sa
 from fastapi import FastAPI, HTTPException, status, Depends
 
-from taking_flight.rest.auth import verify_user
-from taking_flight.rest.db import messages_table
-from taking_flight.rest.dependencies import DbConn
-from taking_flight.rest.models import Message
+from rest import auth
+from rest import db
+from rest.dependencies import DbConn
+from rest.models import Message
 
-app = FastAPI(dependencies=[Depends(verify_user)])
+app = FastAPI(dependencies=[Depends(auth.verify_user)])
 
-TABLES = {"messages": messages_table}
+TABLES = {"messages": db.messages_table}
 
 
 @app.get("/data/{name}")
@@ -20,7 +20,7 @@ async def get_data_from_db(
     if name not in TABLES:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown table: {name}")
 
-    sql = sa.select(messages_table)
+    sql = sa.select(db.messages_table)
     if num_rows:
         sql = sql.limit(num_rows)
     async with conn.stream(sql) as stream:

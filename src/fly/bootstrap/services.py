@@ -3,7 +3,7 @@ import subprocess
 from pyarrow.fs import FileSystem
 from python_on_whales import DockerClient
 
-from taking_flight.cli.console import console
+from fly.console import console
 
 
 def _start_compose() -> None:

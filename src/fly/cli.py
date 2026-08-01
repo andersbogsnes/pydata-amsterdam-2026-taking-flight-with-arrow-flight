@@ -4,10 +4,10 @@ import cyclopts
 from cyclopts import Parameter
 from rich.text import Text
 
-from taking_flight.cli.bootstrap.app import app as bootstrap_app
-from taking_flight.cli.console import console
-from taking_flight.cli.start import app as start_app
-from taking_flight.cli.stop import stop_app
+from fly.bootstrap.app import app as bootstrap_app
+from fly.console import console
+from fly.start import app as start_app
+from fly.stop import stop_app
 
 LOGO_FULL = r"""
    _____                               ___________.__  .__       .__     __   

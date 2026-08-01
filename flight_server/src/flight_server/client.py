@@ -16,19 +16,28 @@ class Client:
         )
         return pl.DataFrame(reader.to_reader())
 
-    def upload_data(self, table: str, data: pathlib.Path) -> int:
+    def upload_data(self, table: str, data: pathlib.Path, dtypes: dict | None = None) -> str:
         descriptor = flight.FlightDescriptor.for_path(table)
         writer: flight.FlightStreamWriter
         reader: flight.FlightMetadataReader
+
+        if dtypes is None:
+            convert_options = None
+        else:
+            convert_options = pyarrow.csv.ConvertOptions(
+                true_values=["t"],
+                false_values=["f"],
+                column_types=dtypes)
+
         with data.open("rb") as f:
-            csv_reader = pyarrow.csv.open_csv(f)
+            csv_reader = pyarrow.csv.open_csv(f, convert_options=convert_options)
             writer, reader = self._client.do_put(descriptor, csv_reader.schema)
 
             for batch in csv_reader:
-                writer.write_table(batch)
-                writer.done_writing()
+                writer.write_batch(batch)
+            writer.done_writing()
 
         # Get the byte representation from the server
-        num_rows = reader.read()
+        msg = reader.read()
 
-        return int.from_bytes(num_rows)
+        return msg.decode()

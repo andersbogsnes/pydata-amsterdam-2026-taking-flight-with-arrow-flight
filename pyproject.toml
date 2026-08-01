@@ -1,5 +1,5 @@
 [project]
-name = "taking_flight"
+name = "fly"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -8,25 +8,39 @@ authors = [
 ]
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "cyclopts>=4.22.2",
-    "fastapi>=0.140.7",
+    "cyclopts>=4.22.3",
     "httpx2>=2.9.1",
     "jupyterlab>=4.6.2",
-    "polars>=1.43.1",
-    "psycopg[binary]>=3.3.4",
     "pyarrow>=25.0.0",
+    "pydantic>=2.13.4",
     "pydantic-settings>=2.14.2",
     "pyiceberg>=0.11.1",
-    "pyrefly>=0.60.0",
     "python-on-whales>=0.81.0",
     "rich>=14.3.4",
     "sqlalchemy>=2.0.51",
-    "uvicorn>=0.51.0",
+    "uvicorn>=0.52.0",
+    "rest"
 ]
 
 [project.scripts]
-fly = "taking_flight.cli:app.meta"
+fly = "fly.cli:app.meta"
+
+[tool.uv.sources]
+flight_server = { workspace = true }
+rest = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    "flight_server",
+    "rest",
+]
 
 [build-system]
-requires = ["uv_build>=0.11.32,<0.12.0"]
+requires = ["uv_build>=0.9.13,<0.10.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pyrefly>=1.2.0",
+]
+

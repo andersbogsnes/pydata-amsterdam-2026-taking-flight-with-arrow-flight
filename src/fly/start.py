@@ -7,7 +7,7 @@ app = App("start", help="Start the specified application")
 def rest():
     import uvicorn
 
-    from taking_flight.rest.app import app as rest_app
+    from rest import app as rest_app
 
     uvicorn.run(rest_app, host="0.0.0.0", port=8000)
 
@@ -19,9 +19,9 @@ def server():
 
     from pyiceberg.catalog.rest import RestCatalog
 
-    from taking_flight.flight_server.auth import TokenServerAuthHandler
-    from taking_flight.flight_server.server import Server
-    from taking_flight.settings import Settings
+    from flight_server import TokenServerAuthHandler
+    from flight_server.server import Server
+    from fly.settings import Settings
 
     settings = Settings()
 

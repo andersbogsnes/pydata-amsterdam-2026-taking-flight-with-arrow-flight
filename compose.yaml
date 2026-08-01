@@ -31,15 +31,11 @@ services:
   rest:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: rest/Dockerfile
     ports:
       - "8000:8000"
     environment:
       - DB_URL=postgresql+psycopg://postgres:postgres@db:5432
-    command:
-      - "fly"
-      - "start"
-      - "rest"
     depends_on:
       db:
         condition: service_healthy
@@ -50,11 +46,8 @@ services:
     ports:
       - "7000:7000"
     environment:
-      - CATALOG_URL=http://lakekeeper:8181
-    command:
-      - "fly"
-      - "start"
-      - "server"
+      - CATALOG_URL=https://s3tables.eu-north-1.amazonaws.com/iceberg
+      - WAREHOUSE=arn:aws:s3tables:eu-north-1:449650107887:bucket/anders-pydata-demo
     depends_on:
       db:
         condition: service_healthy

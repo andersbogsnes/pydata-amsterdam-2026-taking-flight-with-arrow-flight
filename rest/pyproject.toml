@@ -1,0 +1,20 @@
+[project]
+name = "rest"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Anders Bogsnes", email = "andersbogsnes@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.140.7",
+    "psycopg[binary]>=3.3.4",
+    "pydantic-settings>=2.14.2",
+    "sqlalchemy>=2.0.51",
+    "uvicorn>=0.51.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.13,<0.10.0"]
+build-backend = "uv_build"

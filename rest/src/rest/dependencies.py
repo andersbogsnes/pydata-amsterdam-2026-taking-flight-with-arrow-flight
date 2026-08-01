@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 
-from taking_flight.settings import Settings
+from rest.settings import Settings
 
 settings = Settings()
 

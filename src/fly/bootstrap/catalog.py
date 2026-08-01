@@ -1,7 +1,7 @@
 import httpx2
 
-from taking_flight.cli.console import console
-from taking_flight.settings import Settings
+from fly.console import console
+from fly.settings import Settings
 
 
 def _bootstrap_project(client: httpx2.Client) -> None:
