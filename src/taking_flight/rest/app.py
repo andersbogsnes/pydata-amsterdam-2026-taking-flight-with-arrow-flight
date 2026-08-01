@@ -15,7 +15,7 @@ TABLES = {"messages": messages_table}
 
 @app.get("/data/{name}")
 async def get_data_from_db(
-        name: str, conn: DbConn, num_rows: int | None = None
+    name: str, conn: DbConn, num_rows: int | None = None
 ) -> AsyncIterable[Message]:
     if name not in TABLES:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown table: {name}")

@@ -51,7 +51,7 @@ transfer_progress = Progress(
 
 
 def _handle_iceberg_upload(
-        catalog: RestCatalog, identifier: Identifier, data_file: pathlib.Path
+    catalog: RestCatalog, identifier: Identifier, data_file: pathlib.Path
 ):
     """Uploads the data file to the Iceberg table - wraps the inner upload loop with
     progress bars
@@ -73,7 +73,7 @@ def _handle_iceberg_upload(
             "Uploading messages to Iceberg", total=data_file.stat().st_size
         )
         for completed_bytes in _upload_messages_to_iceberg(
-                catalog, data_file, identifier
+            catalog, data_file, identifier
         ):
             transfer_progress.update(upload_file_task, completed=completed_bytes)
         transfer_progress.update(
@@ -108,13 +108,13 @@ def _handle_db_upload(engine: sa.Engine, db_table: sa.Table, data_file: pathlib.
 
 @app.command()
 def up(
-        namespace: str = NAMESPACE,
-        services: Annotated[bool, cyclopts.Parameter(help="Start backing services")] = True,
+    namespace: str = NAMESPACE,
+    services: Annotated[bool, cyclopts.Parameter(help="Start backing services")] = True,
 ):
     """Start backing services and upload initial data"""
 
     for location, data_file in zip(
-            [MESSAGES_URL, CAMPAIGNS_URL], [MESSAGES_FILE, CAMPAIGNS_FILE]
+        [MESSAGES_URL, CAMPAIGNS_URL], [MESSAGES_FILE, CAMPAIGNS_FILE]
     ):
         if not data_file.exists():
             console.print(
