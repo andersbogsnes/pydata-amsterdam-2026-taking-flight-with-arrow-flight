@@ -18,26 +18,11 @@ def run_server() -> None:
     logger = structlog.get_logger(__name__)
     settings = Settings()
 
-    try:
-        catalog = RestCatalog(
-            "default",
-            uri=settings.catalog_url,
-            warehouse=settings.warehouse,
-            **{"rest.sigv4-enabled": "true",
-               "rest.signing-name": "s3tables",
-               "rest.signing-region": "eu-north-1"},
-        )
-    except RESTError as e:
-        raise IcebergCatalogueException("unable to connect to Iceberg Catalog") from e
-
-    logger.info("connected to Iceberg catalog",
-                catalog=settings.catalog_url,
-                warehouse=settings.warehouse)
 
     flight_server = Server(
-        catalog=catalog,
+        settings,
         location=settings.flight_server_url,
-        auth_handler=TokenServerAuthHandler(token="pydataamsterdam")
+        auth_handler=TokenServerAuthHandler(token=settings.token),
     )
 
     is_shutting_down = False

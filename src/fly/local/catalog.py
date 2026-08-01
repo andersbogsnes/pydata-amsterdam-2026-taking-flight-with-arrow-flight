@@ -27,7 +27,7 @@ def _bootstrap_warehouse(client: httpx2.Client, settings: Settings) -> None:
         "/management/v1/warehouse",
         json={
             "warehouse-name": "default",
-            "default-format-version": 3,
+            "default-format-version": 2,
             "storage-profile": {
                 "type": "s3",
                 "bucket": settings.bucket_name,

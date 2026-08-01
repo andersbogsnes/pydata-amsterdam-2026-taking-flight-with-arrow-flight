@@ -1,5 +1,8 @@
 from pydantic import BaseModel
 
+class CreateNamespaceRequest(BaseModel):
+    name: str
+
 class DeleteDatasetRequest(BaseModel):
     name: str
 

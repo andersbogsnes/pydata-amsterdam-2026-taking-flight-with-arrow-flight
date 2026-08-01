@@ -4,10 +4,8 @@ import cyclopts
 from cyclopts import Parameter
 from rich.text import Text
 
-from fly.bootstrap.app import app as bootstrap_app
+from fly.local.app import app as bootstrap_app
 from fly.console import console
-from fly.start import app as start_app
-from fly.stop import stop_app
 
 LOGO_FULL = r"""
    _____                               ___________.__  .__       .__     __   
@@ -67,8 +65,6 @@ def meta(*tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True
 
 
 app.command(bootstrap_app)
-app.command(start_app)
-app.command(stop_app)
 
 if __name__ == "__main__":
     app.meta()

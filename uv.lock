@@ -371,6 +371,7 @@ dependencies = [
     { name = "boto3" },
     { name = "polars" },
     { name = "pyarrow" },
+    { name = "pydantic-settings" },
     { name = "pyiceberg" },
     { name = "structlog" },
 ]
@@ -380,6 +381,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.43.62" },
     { name = "polars", specifier = ">=1.43.1" },
     { name = "pyarrow", specifier = ">=25.0.0" },
+    { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyiceberg", specifier = ">=0.11.1" },
     { name = "structlog", specifier = ">=26.1.0" },
 ]
@@ -390,6 +392,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "cyclopts" },
+    { name = "flight-server" },
     { name = "httpx2" },
     { name = "jupyterlab" },
     { name = "pyarrow" },
@@ -411,6 +414,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cyclopts", specifier = ">=4.22.3" },
+    { name = "flight-server", editable = "flight_server" },
     { name = "httpx2", specifier = ">=2.9.1" },
     { name = "jupyterlab", specifier = ">=4.6.2" },
     { name = "pyarrow", specifier = ">=25.0.0" },

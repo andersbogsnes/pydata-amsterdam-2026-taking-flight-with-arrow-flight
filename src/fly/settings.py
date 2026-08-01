@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     db_url: PostgresDsn = PostgresDsn(
         "postgresql+psycopg://postgres:postgres@localhost:5432"
     )
-    flight_server_url: str = "grpc://:7000"
+    flight_server_url: str = "grpc://localhost:7000"
     bucket_name: str = "events"
+    namespace: str = "events"
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")

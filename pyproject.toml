@@ -19,7 +19,8 @@ dependencies = [
     "rich>=14.3.4",
     "sqlalchemy>=2.0.51",
     "uvicorn>=0.52.0",
-    "rest"
+    "rest",
+    "flight_server"
 ]
 
 [project.scripts]
