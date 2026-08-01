@@ -163,3 +163,5 @@ cython_debug/
 #.idea/
 
 data/*.csv
+/tf/.terraform/
+/tf/.terraform.lock.hcl
