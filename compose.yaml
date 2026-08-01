@@ -20,7 +20,7 @@ services:
       - "--ServerApp.password=''"
       - "--no-browser"
     volumes:
-      - ./data:/app/notebooks/data
+      - ./data:/app/data
       - ./notebooks:/app/notebooks
     develop:
       watch:
