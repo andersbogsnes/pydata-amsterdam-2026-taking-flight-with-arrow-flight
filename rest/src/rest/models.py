@@ -1,6 +1,6 @@
 import datetime
 
-from pydantic import BaseModel, TypeAdapter, ConfigDict
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 
 class Message(BaseModel):

@@ -7,18 +7,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
-    command:
-      - "jupyter"
-      - "lab"
-      - "--ip"
-      - "0.0.0.0"
-      - "--port"
-      - "8080"
-      - "--notebook-dir"
-      - "/app/notebooks"
-      - "--IdentityProvider.token=''"
-      - "--ServerApp.password=''"
-      - "--no-browser"
     volumes:
       - ./data:/app/data
       - ./notebooks:/app/notebooks
@@ -76,7 +64,6 @@ services:
       start_period: 1s
   lakekeeper:
     image: &lakekeeper-image quay.io/lakekeeper/catalog:v0.13
-    pull_policy: always
     environment: &lakekeeper-environment
       - LAKEKEEPER__PG_ENCRYPTION_KEY=dev-secret-key-dev-secret-key-dev-secret-key
       - LAKEKEEPER__PG_DATABASE_URL_READ=postgresql://postgres:postgres@db:5432/postgres
@@ -96,7 +83,6 @@ services:
       - "8181:8181"
   migrate:
     image: *lakekeeper-image
-    pull_policy: always
     environment: *lakekeeper-environment
     restart: "no"
     command: ["migrate"]

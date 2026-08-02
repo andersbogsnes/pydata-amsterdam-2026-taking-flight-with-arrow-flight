@@ -2,12 +2,9 @@ import signal
 import threading
 
 import structlog
-from pyiceberg.catalog.rest import RestCatalog
-from pyiceberg.exceptions import RESTError
 
 from flight_server import logging
 from flight_server.auth import TokenServerAuthHandler
-from flight_server.exceptions import IcebergCatalogueException
 from flight_server.server import Server
 from flight_server.settings import Settings
 
@@ -17,7 +14,6 @@ logging.configure_logging()
 def run_server() -> None:
     logger = structlog.get_logger(__name__)
     settings = Settings()
-
 
     flight_server = Server(
         settings,
@@ -44,5 +40,5 @@ def run_server() -> None:
     flight_server.serve()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_server()

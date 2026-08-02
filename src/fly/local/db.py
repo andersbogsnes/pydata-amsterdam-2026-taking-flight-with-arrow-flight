@@ -5,8 +5,13 @@ from collections.abc import Iterator
 import pyarrow as pa
 import pyarrow.csv
 import sqlalchemy as sa
-from rich.progress import Progress, BarColumn, DownloadColumn, TransferSpeedColumn, \
-    TimeRemainingColumn
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    Progress,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
 from sqlalchemy.engine.interfaces import DBAPIConnection
 
 from fly.console import console
@@ -54,13 +59,13 @@ def _handle_db_upload(engine: sa.Engine, db_table: sa.Table, data_file: pathlib.
             )
             return
 
-    with  Progress(
-            "[progress.description]{task.description}",
-            BarColumn(),
-            DownloadColumn(),
-            TransferSpeedColumn(),
-            TimeRemainingColumn(),
-            console=console,
+    with Progress(
+        "[progress.description]{task.description}",
+        BarColumn(),
+        DownloadColumn(),
+        TransferSpeedColumn(),
+        TimeRemainingColumn(),
+        console=console,
     ) as transfer_progress:
         upload_task = transfer_progress.add_task(
             "Uploading messages to DB", total=data_file.stat().st_size

@@ -1,10 +1,9 @@
-from typing import AsyncIterable
+from collections.abc import AsyncIterable
 
 import sqlalchemy as sa
-from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi import Depends, FastAPI, HTTPException, status
 
-from rest import auth
-from rest import db
+from rest import auth, db
 from rest.dependencies import DbConn
 from rest.models import Message
 

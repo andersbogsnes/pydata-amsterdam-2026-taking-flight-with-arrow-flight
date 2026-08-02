@@ -8,15 +8,17 @@ import pyarrow as pa
 import structlog
 from pyarrow import flight
 from pyiceberg.catalog.rest import RestCatalog
-from pyiceberg.exceptions import NoSuchTableError, BadRequestError, RESTError
-from pyiceberg.expressions import GreaterThanOrEqual, LessThanOrEqual, AlwaysTrue
+from pyiceberg.exceptions import BadRequestError, NoSuchTableError, RESTError
+from pyiceberg.expressions import AlwaysTrue, GreaterThanOrEqual, LessThanOrEqual
 
 from flight_server import metrics
 from flight_server.exceptions import IcebergCatalogueException
 from flight_server.models import (
+    CreateNamespaceRequest,
     DeleteDatasetRequest,
+    DoPutResponse,
     GetDatasetRequest,
-    UpdateDatasetRequest, CreateNamespaceRequest, DoPutResponse,
+    UpdateDatasetRequest,
 )
 from flight_server.settings import Settings
 
@@ -32,11 +34,11 @@ class Server(flight.FlightServerBase):
     """
 
     def __init__(
-            self,
-            settings: Settings,
-            location: str = "grpc://localhost:7000",
-            workers: list[str] | None = None,
-            auth_handler: flight.ServerAuthHandler | None = None,
+        self,
+        settings: Settings,
+        location: str = "grpc://localhost:7000",
+        workers: list[str] | None = None,
+        auth_handler: flight.ServerAuthHandler | None = None,
     ):
         super().__init__(location=location, auth_handler=auth_handler)
         self._location = location
@@ -49,21 +51,22 @@ class Server(flight.FlightServerBase):
         }
 
         if settings.mode == "aws":
-            aws_opts = {"rest.sigv4-enabled": "true",
-                        "rest.signing-name": "s3tables",
-                        "rest.signing-region": "eu-north-1"}
+            aws_opts = {
+                "rest.sigv4-enabled": "true",
+                "rest.signing-name": "s3tables",
+                "rest.signing-region": "eu-north-1",
+            }
             self._catalog_config |= aws_opts
 
     @property
     def _catalog(self) -> RestCatalog:
         if self._rest_catalog is None:
             try:
-                catalog = RestCatalog(
-                    "default",
-                    **self._catalog_config
-                )
+                catalog = RestCatalog("default", **self._catalog_config)
             except RESTError as e:
-                raise IcebergCatalogueException("unable to connect to Iceberg Catalog") from e
+                raise IcebergCatalogueException(
+                    "unable to connect to Iceberg Catalog"
+                ) from e
             return catalog
         return self._rest_catalog
 
@@ -75,12 +78,10 @@ class Server(flight.FlightServerBase):
         try:
             table = self._catalog.load_table(identifier)
         except NoSuchTableError:
-            log.error(f"No such table")
+            log.error("No such table")
             raise flight.FlightServerError(f"{identifier} not found")
         request = GetDatasetRequest(identifier=identifier)
-        ticket = flight.Ticket(
-            request.model_dump_json().encode("utf-8")
-        )
+        ticket = flight.Ticket(request.model_dump_json().encode("utf-8"))
         log.debug("ticket encoded", request=request)
 
         endpoints = [
@@ -114,7 +115,7 @@ class Server(flight.FlightServerBase):
         )
 
     def do_get(
-            self, _: flight.ServerCallContext, ticket: flight.Ticket
+        self, _: flight.ServerCallContext, ticket: flight.Ticket
     ) -> flight.FlightDataStream:
         """
         When a client calls get_flight_info, it will get a Ticket which we defined.
@@ -148,7 +149,7 @@ class Server(flight.FlightServerBase):
         )
 
     def get_schema(
-            self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
+        self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
     ) -> flight.SchemaResult:
         """Get the schema of the dataset."""
         table_name = descriptor.path[0].decode("utf-8")
@@ -163,7 +164,7 @@ class Server(flight.FlightServerBase):
         return flight.SchemaResult(schema)
 
     def get_flight_info(
-            self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
+        self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
     ) -> flight.FlightInfo:
         """The client can ask for the metadata for a dataset by calling get_flight_info.
         They will use a human-readable FlightDescriptor to describe the dataset they want.
@@ -174,13 +175,13 @@ class Server(flight.FlightServerBase):
         from, build a Ticket for the Client to use to ask for the actual data, and provide
         some metadata such as the schema, number of rows, and size.
         """
-        identifier = f"{self._namespace}.{descriptor.path[0].decode("utf-8")}"
+        identifier = f"{self._namespace}.{descriptor.path[0].decode('utf-8')}"
         log = logger.bind(method="get_flight_info", identifier=identifier)
         log.info("getting flight info")
         return self._make_flight_info(identifier)
 
     def list_flights(
-            self, _: flight.ServerCallContext, criteria: bytes
+        self, _: flight.ServerCallContext, criteria: bytes
     ) -> Iterator[flight.FlightInfo]:
         """Flight has native support for data discovery. The client can ask for all available
          flights and can send criteria to filter, where the criteria implementation is up to
@@ -199,11 +200,11 @@ class Server(flight.FlightServerBase):
             yield self._make_flight_info(identifier)
 
     def do_put(
-            self,
-            _: flight.ServerCallContext,
-            descriptor: flight.FlightDescriptor,
-            reader: flight.FlightStreamReader,
-            writer: flight.FlightMetadataWriter,
+        self,
+        _: flight.ServerCallContext,
+        descriptor: flight.FlightDescriptor,
+        reader: flight.FlightStreamReader,
+        writer: flight.FlightMetadataWriter,
     ):
         """Do_put is responsible for writing the data to storage. The client will send an
         Arrow Table, and the server will write it to storage. It can also send metadata back
@@ -232,9 +233,7 @@ class Server(flight.FlightServerBase):
                 row_count += chunk.data.num_rows
                 total_rows += chunk.data.num_rows
                 if row_count >= 1_000_000:
-                    pa_table = pa.Table.from_batches(
-                        batches, reader.schema
-                    )
+                    pa_table = pa.Table.from_batches(batches, reader.schema)
                     tx.append(pa_table)
                     batches = []
                     row_count = 0
@@ -254,10 +253,15 @@ class Server(flight.FlightServerBase):
         mechanism for the client to find out what actions are available.
         """
         actions = [
-            ("create_namespace", json.dumps({
-                "description": "Create a new namespace",
-                "schema": CreateNamespaceRequest.model_json_schema(),
-            })),
+            (
+                "create_namespace",
+                json.dumps(
+                    {
+                        "description": "Create a new namespace",
+                        "schema": CreateNamespaceRequest.model_json_schema(),
+                    }
+                ),
+            ),
             (
                 "update_description",
                 json.dumps(
@@ -291,7 +295,7 @@ class Server(flight.FlightServerBase):
             yield flight.ActionType(action[0], action[1])
 
     def do_action(
-            self, context: flight.ServerCallContext, action: flight.Action
+        self, context: flight.ServerCallContext, action: flight.Action
     ) -> Iterator[bytes]:
         """When the client wants to perform an action, it will send an Action via do_action.
         What that action does is completely up to the implementation.
@@ -335,11 +339,11 @@ class Server(flight.FlightServerBase):
                 raise flight.FlightServerError(f"Unknown action: {action.type}")
 
     def do_exchange(
-            self,
-            _: flight.ServerCallContext,
-            descriptor: flight.FlightDescriptor,
-            reader: flight.FlightStreamReader,
-            writer: flight.FlightStreamWriter,
+        self,
+        _: flight.ServerCallContext,
+        descriptor: flight.FlightDescriptor,
+        reader: flight.FlightStreamReader,
+        writer: flight.FlightStreamWriter,
     ):
         """Flight can receive and send data within the same call using do_exchange.
         This is commonly used for enriching data, such as calling an ML model to enrich the data,
@@ -359,7 +363,7 @@ class Server(flight.FlightServerBase):
 
                 total_data = table.scan(
                     row_filter=GreaterThanOrEqual(term="date", value=min_date)
-                               & LessThanOrEqual(term="date", value=max_date),
+                    & LessThanOrEqual(term="date", value=max_date),
                     selected_fields=("date", "is_clicked"),
                 ).to_arrow()
 

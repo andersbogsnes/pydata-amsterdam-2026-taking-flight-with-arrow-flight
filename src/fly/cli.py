@@ -4,8 +4,8 @@ import cyclopts
 from cyclopts import Parameter
 from rich.text import Text
 
-from fly.local.app import app as bootstrap_app
 from fly.console import console
+from fly.local.app import app as bootstrap_app
 
 LOGO_FULL = r"""
    _____                               ___________.__  .__       .__     __   

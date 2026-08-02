@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Anders Bogsnes", email = "andersbognes@gmail.com" }
 ]
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "cyclopts>=4.22.3",
     "httpx2>=2.9.1",
@@ -20,7 +20,10 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "uvicorn>=0.52.0",
     "rest",
-    "flight_server"
+    "flight_server",
+    "duckdb>=1.5.5",
+    "connectorx>=0.4.5",
+    "adbc-driver-postgresql>=1.12.0",
 ]
 
 [project.scripts]
@@ -37,11 +40,13 @@ members = [
 ]
 
 [build-system]
-requires = ["uv_build>=0.9.13,<0.10.0"]
+requires = ["uv_build>=0.9.13,<0.13.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
     "pyrefly>=1.2.0",
+    "ruff>=0.16.1",
+    "ty>=0.0.65",
 ]
 

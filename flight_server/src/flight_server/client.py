@@ -1,5 +1,6 @@
 import pathlib
-from typing import Self, Iterator, overload, Literal
+from collections.abc import Iterator
+from typing import Literal, Self, overload
 
 import attrs
 import polars as pl
@@ -48,20 +49,30 @@ class Client:
         return pl.DataFrame(reader.to_reader())
 
     @overload
-    def upload_data(self, table: str, data: pathlib.Path, dtypes: dict | None = None,
-                    with_progress: Literal[True] = True) -> Iterator[int]:
-        ...
+    def upload_data(
+        self,
+        table: str,
+        data: pathlib.Path,
+        dtypes: dict | None = None,
+        with_progress: Literal[True] = True,
+    ) -> Iterator[int]: ...
 
     @overload
-    def upload_data(self, table: str, data: pathlib.Path, dtypes: dict | None = None,
-                    with_progress: Literal[False] = False) -> models.DoPutResponse:
-        ...
+    def upload_data(
+        self,
+        table: str,
+        data: pathlib.Path,
+        dtypes: dict | None = None,
+        with_progress: Literal[False] = False,
+    ) -> models.DoPutResponse: ...
 
-    def upload_data(self,
-                    table: str,
-                    data: pathlib.Path,
-                    dtypes: dict | None = None,
-                    with_progress: bool = False) -> Iterator[int] | models.DoPutResponse:
+    def upload_data(
+        self,
+        table: str,
+        data: pathlib.Path,
+        dtypes: dict | None = None,
+        with_progress: bool = False,
+    ) -> Iterator[int] | models.DoPutResponse:
         """Upload the data file to the given table.
 
         Parameters
@@ -89,13 +100,14 @@ class Client:
             )
         else:
             convert_options = pyarrow.csv.ConvertOptions(
-                true_values=["t"],
-                false_values=["f"],
-                column_types=dtypes)
+                true_values=["t"], false_values=["f"], column_types=dtypes
+            )
 
         with data.open("rb") as f:
-            csv_reader = pyarrow.csv.open_csv(f, convert_options=convert_options,
-                                              )
+            csv_reader = pyarrow.csv.open_csv(
+                f,
+                convert_options=convert_options,
+            )
             writer, reader = self._client.do_put(descriptor, csv_reader.schema)
 
             for batch in csv_reader:
@@ -107,23 +119,25 @@ class Client:
 
             if not with_progress:
                 msg = reader.read()
-                return models.DoPutResponse.model_validate_json(msg.to_pybytes().decode())
+                return models.DoPutResponse.model_validate_json(
+                    msg.to_pybytes().decode()
+                )
             return f.tell()
 
     def table_exists(self, table: str) -> bool:
         try:
             info: flight.FlightInfo = self._client.get_flight_info(
-                flight.FlightDescriptor.for_path(table))
+                flight.FlightDescriptor.for_path(table)
+            )
         except flight.FlightServerError:
             return False
 
-        if info.total_records <= 0:
-            return False
-
-        return True
+        return info.total_records <= 0
 
     def create_namespace(self, name: str) -> None:
         request = CreateNamespaceRequest(name=name)
-        self._client.do_action(flight.Action(action_type="create_namespace",
-                                             buf=request.model_dump_json().encode()
-                                             ))
+        self._client.do_action(
+            flight.Action(
+                action_type="create_namespace", buf=request.model_dump_json().encode()
+            )
+        )

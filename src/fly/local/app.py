@@ -2,9 +2,9 @@ import pathlib
 
 import cyclopts
 import sqlalchemy as sa
+from flight_server.client import Client
 from pyarrow.fs import S3FileSystem
 
-from flight_server.client import Client
 from fly.console import console
 from fly.local.catalog import _bootstrap_catalog
 from fly.local.db import _handle_db_upload
@@ -12,9 +12,7 @@ from fly.local.iceberg import _handle_iceberg_upload
 from fly.settings import Settings
 from rest import db as rest_db
 
-app = cyclopts.App(
-    name="local", help="local deployment of project"
-)
+app = cyclopts.App(name="local", help="local deployment of project")
 
 DATA_DIR = pathlib.Path(__file__).parents[3] / "data"
 MESSAGES_URL = "https://www.kaggle.com/datasets/mkechinov/direct-messaging?select=messages-demo.csv"
@@ -30,7 +28,7 @@ def bootstrap():
     """Configure services and upload initial data"""
 
     for location, data_file in zip(
-            [MESSAGES_URL, CAMPAIGNS_URL], [MESSAGES_FILE, CAMPAIGNS_FILE]
+        [MESSAGES_URL, CAMPAIGNS_URL], [MESSAGES_FILE, CAMPAIGNS_FILE]
     ):
         if not data_file.exists():
             console.print(
