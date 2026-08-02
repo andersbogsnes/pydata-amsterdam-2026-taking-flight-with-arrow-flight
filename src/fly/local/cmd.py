@@ -12,7 +12,7 @@ from fly.local.iceberg import _handle_iceberg_upload
 from fly.settings import Settings
 from rest import db as rest_db
 
-app = cyclopts.App(name="local", help="local deployment of project")
+cmd = cyclopts.App(name="local", help="local deployment of project")
 
 DATA_DIR = pathlib.Path(__file__).parents[3] / "data"
 MESSAGES_URL = "https://www.kaggle.com/datasets/mkechinov/direct-messaging?select=messages-demo.csv"
@@ -23,7 +23,7 @@ MESSAGES_FILE = DATA_DIR / "messages-demo.csv"
 CAMPAIGNS_FILE = DATA_DIR / "campaigns.csv"
 
 
-@app.command()
+@cmd.command()
 def bootstrap():
     """Configure services and upload initial data"""
 

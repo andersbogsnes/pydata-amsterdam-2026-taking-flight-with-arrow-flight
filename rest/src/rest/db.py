@@ -2,6 +2,9 @@ import sqlalchemy as sa
 
 meta = sa.MetaData()
 
+
+# CREATE TABLE t(ride_id VARCHAR, rideable_type VARCHAR, started_at TIMESTAMP, ended_at TIMESTAMP, start_station_name VARCHAR, start_station_id VARCHAR, end_station_name VARCHAR, end_station_id VARCHAR, start_lat DOUBLE, start_lng DOUBLE, end_lat DOUBLE, end_lng DOUBLE, member_casual VARCHAR);
+
 messages_table = sa.Table(
     "messages",
     meta,

@@ -37,7 +37,7 @@ def _upload_message_to_db(
                     },
                 ),
             ) as reader,
-            raw_conn.cursor() as cursor,
+            raw_conn.cursor() as cursor,  # type: ignore
             cursor.copy(f"COPY {table_name} FROM STDIN (FORMAT CSV)") as copy,
         ):
             write_options = pyarrow.csv.WriteOptions(include_header=False)

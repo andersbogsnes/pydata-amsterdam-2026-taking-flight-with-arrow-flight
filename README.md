@@ -61,14 +61,10 @@ https://docs.docker.com/desktop/settings-and-maintenance/settings/#resources
 
 ## 2. Dataset
 
-For this demonstration, we'll be using a dataset from Kaggle, which requires a Kaggle account.
+For this demonstration, we'll be using the NYC Bike Trip dataset.
 
-For this demo, you will need the following two files:
-
-- https://www.kaggle.com/datasets/mkechinov/direct-messaging?select=campaigns.csv
-- https://www.kaggle.com/datasets/mkechinov/direct-messaging?select=messages-demo.csv
-
-Download them, and place them in the `./data` folder
+- https://citibikenyc.com/system-data
+- https://s3.amazonaws.com/tripdata/index.html
 
 ## 3. Install the CLI
 
@@ -83,43 +79,11 @@ https://docs.astral.sh/uv/getting-started/installation/
 With uv installed, starting everything:
 
 ```bash
-uv run fly bootstrap up
+uv run fly local up
 ```
 
 To shut down the services again, run
 
 ```bash
-uv run fly bootstrap down
-```
-
-To start individual services
-
-```bash
-uv run fly start <service>
-```
-
-To stop individual services
-
-```bash
-uv run fly stop <service>
-```
-
-### Pip
-
-If you want to use pip, install the CLI with
-
-```bash
-pip install .
-```
-
-This will give you access to the `fly` command.
-
-```bash
-fly bootstrap up
-```
-
-To shut down the services again, run
-
-```bash
-fly bootstrap down
+uv run fly local down
 ```
