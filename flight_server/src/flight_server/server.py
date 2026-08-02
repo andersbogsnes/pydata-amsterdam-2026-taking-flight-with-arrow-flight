@@ -369,14 +369,16 @@ class Server(flight.FlightServerBase):
         or calculate some metric on the data.
         """
         cmd: str = json.loads(descriptor.command.decode("utf-8"))["metric"]
+        sample_data: pa.Table = reader.read_all()
+        df = pl.DataFrame(sample_data)
+
         match cmd:
             case "manhattan_distance":
-                sample_ctr_data: pa.Table = reader.read_all()
-                df = pl.DataFrame(sample_ctr_data)
-
                 result = metrics.calculate_manhattan(df).to_arrow()
+            case "euclidean_distance":
+                result = metrics.calculate_euclidean(df).to_arrow()
 
-                writer.begin(result.schema)
-                writer.write_table(result)
             case _:
                 raise flight.FlightServerError(f"Unknown command: {cmd}")
+        writer.begin(result.schema)
+        writer.write_table(result)
