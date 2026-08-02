@@ -26,6 +26,8 @@ services:
     build:
       context: .
       dockerfile: rest/Dockerfile
+      tags:
+        - "docker.io/andersbogsnes/flight_rest:1.0.0"
     ports:
       - "8000:8000"
     environment:
@@ -47,6 +49,8 @@ services:
     build:
       context: .
       dockerfile: flight_server/Dockerfile
+      tags:
+        - "docker.io/andersbogsnes/flight_server:1.0.0"
     ports:
       - "7000:7000"
     depends_on:

@@ -1,28 +1,26 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'arrow-flight-rest'
+app = 'arrow-flight-server'
 primary_region = 'arn'
 
 [build]
-image = "andersbogsnes/flight_rest:1.0.0"
+image = "andersbogsnes/flight_server:1.0.0"
 
 [http_service]
-internal_port = 8000
+internal_port = 7000
 force_https = true
 auto_stop_machines = 'stop'
 auto_start_machines = true
 min_machines_running = 0
 processes = ['app']
 
-[[http_service.checks]]
-[[http_service.checks]]
-grace_period = "10s"
-interval = "30s"
-method = "GET"
-timeout = "5s"
-path = "/health"
+[http_service.http_options]
+h2_backend = true
 
+
+[http_service.tls_options]
+alpn = ["h2"]
 
 [[vm]]
 cpu_kind = 'shared'
