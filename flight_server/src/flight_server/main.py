@@ -8,12 +8,12 @@ from flight_server.auth import TokenServerAuthHandler
 from flight_server.server import Server
 from flight_server.settings import Settings
 
-logging.configure_logging()
-
 
 def run_server() -> None:
-    logger = structlog.get_logger(__name__)
     settings = Settings()
+    logging.configure_logging(settings.mode == "local")
+
+    logger = structlog.get_logger(__name__)
 
     flight_server = Server(
         settings,

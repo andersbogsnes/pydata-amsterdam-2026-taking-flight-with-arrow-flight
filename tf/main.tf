@@ -23,6 +23,7 @@ data "aws_iam_policy_document" "flight_backend_s3tables" {
       "s3tables:ListTables",
       "s3tables:ListNamespaces",
       "s3tables:GetTableBucket",
+      "s3tables:GetTableMetadataLocation",
     ]
     resources = [
       aws_s3tables_table_bucket.pydata_demo.arn,
