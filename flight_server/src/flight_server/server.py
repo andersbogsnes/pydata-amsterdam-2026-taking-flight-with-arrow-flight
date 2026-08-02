@@ -12,7 +12,7 @@ from pyiceberg.exceptions import BadRequestError, NoSuchTableError, RESTError
 from pyiceberg.expressions import AlwaysTrue, GreaterThanOrEqual, LessThanOrEqual
 
 from flight_server import metrics
-from flight_server.exceptions import IcebergCatalogueException
+from flight_server.exceptions import IcebergCatalogueException, handle_flight_errors
 from flight_server.models import (
     CreateNamespaceRequest,
     DeleteDatasetRequest,
@@ -60,6 +60,7 @@ class Server(flight.FlightServerBase):
 
     @property
     def _catalog(self) -> RestCatalog:
+        """Lazily instantiates the catalog, since it tries to connect during __init__"""
         if self._rest_catalog is None:
             try:
                 catalog = RestCatalog("default", **self._catalog_config)
@@ -109,11 +110,10 @@ class Server(flight.FlightServerBase):
             endpoints=endpoints,
             total_records=num_rows,
             total_bytes=total_bytes,
-            app_metadata=json.dumps(
-                {"description": table.properties.get("description", "")}
-            ),
+            app_metadata=json.dumps(table.properties).encode(),
         )
 
+    @handle_flight_errors
     def do_get(
         self, _: flight.ServerCallContext, ticket: flight.Ticket
     ) -> flight.FlightDataStream:
@@ -137,8 +137,10 @@ class Server(flight.FlightServerBase):
         def gen():
             try:
                 yield from reader
+            except Exception as e:
+                logger.exception("error streaming data")
+                raise flight.FlightServerError(str(e)) from e
             finally:
-                # Always close the dataset when we're done.'
                 reader.close()
 
         log.info("starting stream")
@@ -148,6 +150,7 @@ class Server(flight.FlightServerBase):
             generator=gen(),
         )
 
+    @handle_flight_errors
     def get_schema(
         self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
     ) -> flight.SchemaResult:
@@ -155,7 +158,8 @@ class Server(flight.FlightServerBase):
         table_name = descriptor.path[0].decode("utf-8")
         log = logger.bind(table_name=table_name, method="get_schema")
         try:
-            table = self._catalog.load_table(table_name)
+            log.info("getting schema")
+            table = self._catalog.load_table(f"{self._namespace}.{table_name}")
         except NoSuchTableError:
             log.error("no such table")
             raise flight.FlightServerError(f"{table_name} not found")
@@ -163,6 +167,7 @@ class Server(flight.FlightServerBase):
         schema = table.schema().as_arrow()
         return flight.SchemaResult(schema)
 
+    @handle_flight_errors
     def get_flight_info(
         self, _: flight.ServerCallContext, descriptor: flight.FlightDescriptor
     ) -> flight.FlightInfo:
@@ -180,6 +185,7 @@ class Server(flight.FlightServerBase):
         log.info("getting flight info")
         return self._make_flight_info(identifier)
 
+    @handle_flight_errors
     def list_flights(
         self, _: flight.ServerCallContext, criteria: bytes
     ) -> Iterator[flight.FlightInfo]:
@@ -199,6 +205,7 @@ class Server(flight.FlightServerBase):
         for identifier in table_identifiers:
             yield self._make_flight_info(identifier)
 
+    @handle_flight_errors
     def do_put(
         self,
         _: flight.ServerCallContext,
@@ -215,7 +222,15 @@ class Server(flight.FlightServerBase):
         if not self._catalog.table_exists(table_name):
             log.info("creating table")
             try:
-                table = self._catalog.create_table(table_name, reader.schema)
+                if (meta := reader.schema.metadata) is not None:
+                    properties = {k.decode(): v.decode() for k, v in meta.items()}
+                    log.debug("adding metadata", properties=properties)
+                    table = self._catalog.create_table(
+                        table_name, reader.schema, properties=properties
+                    )
+                else:
+                    table = self._catalog.create_table(table_name, reader.schema)
+
             except BadRequestError:
                 log.error("unable to create table")
                 raise flight.FlightServerError("unable to create table")
@@ -294,6 +309,7 @@ class Server(flight.FlightServerBase):
         for action in actions:
             yield flight.ActionType(action[0], action[1])
 
+    @handle_flight_errors
     def do_action(
         self, context: flight.ServerCallContext, action: flight.Action
     ) -> Iterator[bytes]:
@@ -311,7 +327,9 @@ class Server(flight.FlightServerBase):
                     action.body.to_pybytes().decode("utf-8")
                 )
                 try:
-                    table = self._catalog.load_table(request.name)
+                    table = self._catalog.load_table(
+                        f"{self._namespace}.{request.name}"
+                    )
                 except NoSuchTableError:
                     raise flight.FlightServerError(
                         f"Table {request.name} does not exist"
@@ -338,6 +356,7 @@ class Server(flight.FlightServerBase):
             case _:
                 raise flight.FlightServerError(f"Unknown action: {action.type}")
 
+    @handle_flight_errors
     def do_exchange(
         self,
         _: flight.ServerCallContext,
@@ -351,24 +370,12 @@ class Server(flight.FlightServerBase):
         """
         cmd: str = json.loads(descriptor.command.decode("utf-8"))["metric"]
         match cmd:
-            case "ctr":
+            case "manhattan_distance":
                 sample_ctr_data: pa.Table = reader.read_all()
                 df = pl.DataFrame(sample_ctr_data)
-                min_date = cast(dt.date, df["date"].min())
-                max_date = cast(dt.date, df["date"].max())
 
-                sample_ctr = metrics.calculate_ctr(sample_ctr_data)
+                result = metrics.calculate_manhattan(df).to_arrow()
 
-                table = self._catalog.load_table(f"{self.namespace}.metrics")
-
-                total_data = table.scan(
-                    row_filter=GreaterThanOrEqual(term="date", value=min_date)
-                    & LessThanOrEqual(term="date", value=max_date),
-                    selected_fields=("date", "is_clicked"),
-                ).to_arrow()
-
-                total_ctr = metrics.calculate_ctr(total_data)
-                result = total_ctr.append_column("sample_ctr", sample_ctr["click_rate"])
                 writer.begin(result.schema)
                 writer.write_table(result)
             case _:

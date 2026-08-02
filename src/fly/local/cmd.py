@@ -4,6 +4,7 @@ import cyclopts
 import sqlalchemy as sa
 from flight_server.client import Client
 from pyarrow.fs import S3FileSystem
+import pyarrow as pa
 
 from fly.console import console
 from fly.local.catalog import _bootstrap_catalog
@@ -15,27 +16,19 @@ from rest import db as rest_db
 cmd = cyclopts.App(name="local", help="local deployment of project")
 
 DATA_DIR = pathlib.Path(__file__).parents[3] / "data"
-MESSAGES_URL = "https://www.kaggle.com/datasets/mkechinov/direct-messaging?select=messages-demo.csv"
-CAMPAIGNS_URL = (
-    "https://www.kaggle.com/datasets/mkechinov/direct-messaging?select=campaigns.csv"
-)
-MESSAGES_FILE = DATA_DIR / "messages-demo.csv"
-CAMPAIGNS_FILE = DATA_DIR / "campaigns.csv"
+
+TRIP_DATA_FILE = DATA_DIR / "202601-citibike-tripdata_1.csv"
 
 
 @cmd.command()
 def bootstrap():
     """Configure services and upload initial data"""
 
-    for location, data_file in zip(
-        [MESSAGES_URL, CAMPAIGNS_URL], [MESSAGES_FILE, CAMPAIGNS_FILE]
-    ):
-        if not data_file.exists():
-            console.print(
-                f"❌ [red]{data_file} doesn't exist. "
-                f"Go to {location}, download and extract it to the data folder"
-            )
-            return
+    if not TRIP_DATA_FILE.exists():
+        console.print(
+            f"❌ {TRIP_DATA_FILE.name} doesn't exist. Run the `fly data download` command"
+            f" to download the initial data."
+        )
 
     settings = Settings()
     s3_fs = S3FileSystem(
@@ -54,6 +47,10 @@ def bootstrap():
 
     client = Client.for_location(settings.flight_server_url)
 
-    _handle_iceberg_upload(client, "events", "messages", MESSAGES_FILE)
-    _handle_db_upload(engine, rest_db.messages_table, MESSAGES_FILE)
+    _handle_iceberg_upload(client,
+                           "trips",
+                           "rides", TRIP_DATA_FILE,
+                           dtypes={"started_at": pa.timestamp("ms"),
+                                   "ended_at": pa.timestamp("ms")})
+    _handle_db_upload(engine, rest_db.rides_table, TRIP_DATA_FILE)
     console.print("🔗 Notebook is ready! http://localhost:8080")

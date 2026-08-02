@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     catalog_url: str = "http://localhost:8181/catalog"
     flight_server_url: str = "grpc://0.0.0.0:7000"
     warehouse: str = "default"
-    namespace: str = "events"
+    namespace: str = "trips"
     mode: Literal["local", "aws"] = "local"
     token: str = "pydata_amsterdam"
 

@@ -54,6 +54,7 @@ class Client:
         table: str,
         data: pathlib.Path,
         dtypes: dict | None = None,
+        metadata: dict | None = None,
         with_progress: Literal[True] = True,
     ) -> Iterator[int]: ...
 
@@ -63,6 +64,7 @@ class Client:
         table: str,
         data: pathlib.Path,
         dtypes: dict | None = None,
+        metadata: dict | None = None,
         with_progress: Literal[False] = False,
     ) -> models.DoPutResponse: ...
 
@@ -71,6 +73,7 @@ class Client:
         table: str,
         data: pathlib.Path,
         dtypes: dict | None = None,
+        metadata: dict | None = None,
         with_progress: bool = False,
     ) -> Iterator[int] | models.DoPutResponse:
         """Upload the data file to the given table.
@@ -83,6 +86,8 @@ class Client:
             The path to the CSV file to upload.
         dtypes: dict
             Mapping of column names to dtypes. Passed to pyarrow.csv.ConvertOptions.
+        metadata: dict
+            Mapping of metadata to include on the table
         with_progress: bool
             If true, return an iterator of bytes read. Used for progress bars
         """
@@ -108,10 +113,16 @@ class Client:
                 f,
                 convert_options=convert_options,
             )
-            writer, reader = self._client.do_put(descriptor, csv_reader.schema)
+            schema = csv_reader.schema
+
+            if metadata is not None:
+                schema = csv_reader.schema.with_metadata(
+                    metadata,
+                )
+            writer, reader = self._client.do_put(descriptor, schema)
 
             for batch in csv_reader:
-                writer.write_batch(batch)
+                writer.write(batch)
                 if with_progress:
                     yield f.tell()
 
@@ -132,7 +143,7 @@ class Client:
         except flight.FlightServerError:
             return False
 
-        return info.total_records <= 0
+        return info.total_records >= 0
 
     def create_namespace(self, name: str) -> None:
         request = CreateNamespaceRequest(name=name)

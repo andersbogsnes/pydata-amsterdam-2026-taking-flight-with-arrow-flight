@@ -10,6 +10,12 @@ services:
     volumes:
       - ./data:/app/data
       - ./notebooks:/app/notebooks
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/status')" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     develop:
       watch:
         - action: rebuild
@@ -27,6 +33,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 3s
+    develop:
+      watch:
+        - action: rebuild
+          path: rest/src
   server:
     build:
       context: .
@@ -41,6 +57,16 @@ services:
     environment:
       - MODE=local
       - CATALOG_URL=http://lakekeeper:8181/catalog
+    healthcheck:
+      test: [ "CMD", "python", "-c", "from pyarrow import flight; flight.FlightClient('grpc://localhost:7000').wait_for_available(timeout=5)" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 3s
+    develop:
+      watch:
+        - action: rebuild
+          path: flight_server/src
   storage:
     image: rustfs/rustfs:latest
     ports:
@@ -50,6 +76,12 @@ services:
       - RUSTFS_ACCESS_KEY=rustfsadmin
       - RUSTFS_SECRET_KEY=rustfsadmin
       - RUSTFS_CONSOLE_ENABLE=true
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost:9000/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 3s
   db:
     image: postgres:17-alpine
     environment:
@@ -69,9 +101,9 @@ services:
       - LAKEKEEPER__PG_DATABASE_URL_READ=postgresql://postgres:postgres@db:5432/postgres
       - LAKEKEEPER__PG_DATABASE_URL_WRITE=postgresql://postgres:postgres@db:5432/postgres
       - LAKEKEEPER__AUTHZ_BACKEND=allowall
-    command: ["serve"]
+    command: [ "serve" ]
     healthcheck:
-      test: ["CMD", "/home/nonroot/lakekeeper", "healthcheck"]
+      test: [ "CMD", "/home/nonroot/lakekeeper", "healthcheck" ]
       interval: 1s
       timeout: 10s
       retries: 3
@@ -85,7 +117,7 @@ services:
     image: *lakekeeper-image
     environment: *lakekeeper-environment
     restart: "no"
-    command: ["migrate"]
+    command: [ "migrate" ]
     depends_on:
       db:
         condition: service_healthy

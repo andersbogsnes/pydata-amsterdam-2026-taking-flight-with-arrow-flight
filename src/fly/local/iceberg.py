@@ -1,6 +1,5 @@
 import pathlib
 
-import pyarrow as pa
 from flight_server.client import Client
 from rich.progress import (
     BarColumn,
@@ -14,17 +13,18 @@ from fly.console import console
 
 
 def _handle_iceberg_upload(
-    client: Client, namespace_name: str, table_name: str, data_file: pathlib.Path
+    client: Client,
+    namespace_name: str,
+    table_name: str,
+    data_file: pathlib.Path,
+    dtypes: dict | None = None,
 ):
-    """Uploads the data file to the Iceberg table - wraps the inner upload loop with
-    progress bars
-    """
+    """Uploads the data file to the Iceberg table"""
 
     client.create_namespace(namespace_name)
-
     if client.table_exists(table_name):
         console.print(
-            f"[green]✔[/green] ️Already uploaded {data_file.stem} to {table_name}"
+            f"[green]✔[/green] Iceberg table {table_name} already has records"
             " - skipping"
         )
         return
@@ -40,16 +40,12 @@ def _handle_iceberg_upload(
         upload_file_task = transfer_progress.add_task(
             "Uploading messages to Iceberg", total=data_file.stat().st_size
         )
+
         for count in client.upload_data(
             table_name,
             data_file,
-            dtypes={
-                "platform": "string",
-                "category": "string",
-                "created_at": pa.timestamp("us"),
-                "blocked_at": pa.timestamp("us"),
-                "updated_at": pa.timestamp("us"),
-            },
+            dtypes,
+            metadata={"description": "NYC CitiBike trips"},
             with_progress=True,
         ):
             transfer_progress.update(

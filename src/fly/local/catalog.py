@@ -55,9 +55,11 @@ def _bootstrap_warehouse(client: httpx2.Client, settings: Settings) -> None:
     match resp.status_code:
         case 201:
             console.print("[green]✔[/green] Warehouse bootstrapped successfully")
-        case 400:
+        case 400 | 409:
             match resp.json():
                 case {"error": {"type": "CreateWarehouseStorageProfileOverlap"}}:
+                    console.print("[green]✔[/green] Warehouse already bootstrapped")
+                case {"error": {"type": "WarehouseAlreadyExists"}}:
                     console.print("[green]✔[/green] Warehouse already bootstrapped")
                 case message:
                     console.print(message)
