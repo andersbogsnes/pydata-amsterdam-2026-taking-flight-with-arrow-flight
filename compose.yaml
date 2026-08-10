@@ -22,55 +22,7 @@ services:
           path: src
         - action: rebuild
           path: pyproject.toml
-  rest:
-    build:
-      context: .
-      dockerfile: rest/Dockerfile
-      tags:
-        - "docker.io/andersbogsnes/flight_rest:1.0.0"
-    ports:
-      - "8000:8000"
-    environment:
-      - DB_URL=postgresql+psycopg://postgres:postgres@db:5432
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 3s
-    develop:
-      watch:
-        - action: rebuild
-          path: rest/src
-  server:
-    build:
-      context: .
-      dockerfile: flight_server/Dockerfile
-      tags:
-        - "docker.io/andersbogsnes/flight_server:1.0.0"
-    ports:
-      - "7000:7000"
-    depends_on:
-      db:
-        condition: service_healthy
-      lakekeeper:
-        condition: service_healthy
-    environment:
-      - MODE=local
-      - CATALOG_URL=http://lakekeeper:8181/catalog
-    healthcheck:
-      test: [ "CMD", "python", "-c", "from pyarrow import flight; flight.FlightClient('grpc://localhost:7000').wait_for_available(timeout=5)" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 3s
-    develop:
-      watch:
-        - action: rebuild
-          path: flight_server/src
+
   storage:
     image: rustfs/rustfs:latest
     ports:

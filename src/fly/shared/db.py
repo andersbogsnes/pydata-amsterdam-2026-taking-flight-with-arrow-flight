@@ -37,14 +37,14 @@ def _upload_message_to_db(
                 yield f.tell()
 
 
-def _handle_db_upload(engine: sa.Engine, db_table: sa.Table, data_file: pathlib.Path):
+def handle_db_upload(engine: sa.Engine, db_table: sa.Table, data_file: pathlib.Path):
     """Uploads the data file to the DB table - wraps the inner upload loop with progress bars"""
     with engine.begin() as conn:
         sql = sa.select(sa.func.count()).select_from(db_table)
         row_count = conn.execute(sql).scalar_one()
         if row_count > 0:
             console.print(
-                f"[green]✔[/green] Database table {db_table.name} already has records - skipping"
+                f" [green]✔[/green] Database table {db_table.name} already has records - skipping"
             )
             return
 
@@ -63,6 +63,6 @@ def _handle_db_upload(engine: sa.Engine, db_table: sa.Table, data_file: pathlib.
             transfer_progress.update(upload_task, completed=completed_bytes)
 
         transfer_progress.update(
-            upload_task, description="[green]✔[/green] Upload to db complete!"
+            upload_task, description=" [green]✔[/green] Upload to db complete!"
         )
     transfer_progress.remove_task(upload_task)

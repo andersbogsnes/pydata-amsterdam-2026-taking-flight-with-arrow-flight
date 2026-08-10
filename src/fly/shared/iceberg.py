@@ -12,7 +12,7 @@ from rich.progress import (
 from fly.console import console
 
 
-def _handle_iceberg_upload(
+def handle_iceberg_upload(
     client: Client,
     namespace_name: str,
     table_name: str,
@@ -24,7 +24,7 @@ def _handle_iceberg_upload(
     client.create_namespace(namespace_name)
     if client.table_exists(table_name):
         console.print(
-            f"[green]✔[/green] Iceberg table {table_name} already has records"
+            f" [green]✔[/green] Iceberg table {table_name} already has records"
             " - skipping"
         )
         return
@@ -53,5 +53,5 @@ def _handle_iceberg_upload(
                 completed=count,
             )
         transfer_progress.update(
-            upload_file_task, description="[green]✔[/green] Upload to Iceberg complete!"
+            upload_file_task, description=" [green]✔[/green] Upload to Iceberg complete!"
         )

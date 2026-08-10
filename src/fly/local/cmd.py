@@ -8,8 +8,9 @@ import pyarrow as pa
 
 from fly.console import console
 from fly.local.catalog import _bootstrap_catalog
-from fly.local.db import _handle_db_upload
-from fly.local.iceberg import _handle_iceberg_upload
+from fly.local.compose import _start_services
+from fly.shared.db import handle_db_upload
+from fly.shared.iceberg import handle_iceberg_upload
 from fly.settings import Settings
 from rest import db as rest_db
 
@@ -38,6 +39,8 @@ def bootstrap():
         allow_bucket_creation=True,
         region=settings.s3_region,
     )
+    _start_services()
+
     s3_fs.create_dir(settings.bucket_name)
 
     engine = sa.create_engine(settings.db_url.unicode_string())
@@ -47,10 +50,10 @@ def bootstrap():
 
     client = Client.for_location(settings.flight_server_url)
 
-    _handle_iceberg_upload(client,
+    handle_iceberg_upload(client,
                            "trips",
                            "rides", TRIP_DATA_FILE,
-                           dtypes={"started_at": pa.timestamp("ms"),
+                          dtypes={"started_at": pa.timestamp("ms"),
                                    "ended_at": pa.timestamp("ms")})
-    _handle_db_upload(engine, rest_db.rides_table, TRIP_DATA_FILE)
+    handle_db_upload(engine, rest_db.rides_table, TRIP_DATA_FILE)
     console.print("🔗 Notebook is ready! http://localhost:8080")

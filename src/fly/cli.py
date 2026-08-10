@@ -6,7 +6,8 @@ from rich.text import Text
 
 from fly.console import console
 from fly.data.cmd import cmd as data_cmd
-from fly.local.cmd import cmd as bootstrap_app
+from fly.local.cmd import cmd as local_bootstrap
+from fly.remote.cmd import cmd as remote_bootstrap
 
 LOGO_FULL = r"""
    _____                               ___________.__  .__       .__     __   
@@ -65,7 +66,8 @@ def meta(*tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True
     app(tokens)
 
 
-app.command(bootstrap_app)
+app.command(local_bootstrap)
+app.command(remote_bootstrap)
 app.command(data_cmd)
 
 if __name__ == "__main__":

@@ -2,6 +2,11 @@ resource "aws_s3tables_table_bucket" "pydata_demo" {
   name = var.table_bucket_name
 }
 
+resource "aws_s3tables_namespace" "pydata_demo" {
+  namespace        = "trips"
+  table_bucket_arn = aws_s3tables_table_bucket.pydata_demo.arn
+}
+
 resource "aws_iam_user" "flight_backend" {
   name = "arrow_flight_backend"
 }
