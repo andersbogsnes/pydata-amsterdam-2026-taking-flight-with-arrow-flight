@@ -25,6 +25,7 @@ class TokenServerAuthHandler(flight.ServerAuthHandler):
         """This is called by the Flight server when a new connection is established."""
         logger.info("Authenticating user during handshake")
         received = incoming.read()
+
         if received != self._token:
             raise flight.FlightUnauthenticatedError("Invalid token")
         logger.info("Token is valid - returning valid token")

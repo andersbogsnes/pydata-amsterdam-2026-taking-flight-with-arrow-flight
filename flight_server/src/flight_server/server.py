@@ -6,7 +6,7 @@ import pyarrow as pa
 import structlog
 from pyarrow import flight
 from pyiceberg.catalog.rest import RestCatalog
-from pyiceberg.exceptions import BadRequestError, NoSuchTableError, RESTError
+from pyiceberg.exceptions import BadRequestError, NoSuchTableError, RESTError, NamespaceAlreadyExistsError
 from pyiceberg.expressions import AlwaysTrue
 
 from flight_server import metrics
@@ -34,7 +34,7 @@ class Server(flight.FlightServerBase):
     def __init__(
         self,
         settings: Settings,
-        location: str = "grpc://localhost:7000",
+        location: str = "grpc://localhost:7001",
         workers: list[str] | None = None,
         auth_handler: flight.ServerAuthHandler | None = None,
     ):
@@ -61,8 +61,9 @@ class Server(flight.FlightServerBase):
         """Lazily instantiates the catalog, since it tries to connect during __init__"""
         if self._rest_catalog is None:
             try:
-                logger.info("connecting to catalog", **self._catalog_config)
+                
                 self._rest_catalog = RestCatalog("default", **self._catalog_config)
+                logger.info("connected to catalog", **self._catalog_config)
             except RESTError as e:
                 logger.error("unable to connect to catalog")
                 raise IcebergCatalogueException(
@@ -326,7 +327,12 @@ class Server(flight.FlightServerBase):
                 request = CreateNamespaceRequest.model_validate_json(
                     action.body.to_pybytes().decode("utf-8")
                 )
-                self._catalog.create_namespace(request.name)
+                try:
+                    self._catalog.create_namespace(request.name)
+                except NamespaceAlreadyExistsError:
+                    raise flight.FlightServerError(
+                        f"Namespace {request.name} already exists"
+                    )
             case "update_description":
                 request = UpdateDatasetRequest.model_validate_json(
                     action.body.to_pybytes().decode("utf-8")

@@ -1,6 +1,7 @@
 import pathlib
 
 from flight_server.client import Client
+from pyarrow._flight import FlightServerError
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -21,7 +22,11 @@ def handle_iceberg_upload(
 ):
     """Uploads the data file to the Iceberg table"""
 
-    client.create_namespace(namespace_name)
+    try:
+        client.create_namespace(namespace_name)
+    except FlightServerError:
+        pass
+
     if client.table_exists(table_name):
         console.print(
             f" [green]✔[/green] Iceberg table {table_name} already has records"
@@ -53,5 +58,6 @@ def handle_iceberg_upload(
                 completed=count,
             )
         transfer_progress.update(
-            upload_file_task, description=" [green]✔[/green] Upload to Iceberg complete!"
+            upload_file_task,
+            description=" [green]✔[/green] Upload to Iceberg complete!",
         )

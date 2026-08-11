@@ -22,7 +22,7 @@ TRIP_DATA_FILE = DATA_DIR / "202601-citibike-tripdata_1.csv"
 
 
 @cmd.command()
-def bootstrap():
+def bootstrap(services: bool = True):
     """Configure services and upload initial data"""
 
     if not TRIP_DATA_FILE.exists():
@@ -39,7 +39,9 @@ def bootstrap():
         allow_bucket_creation=True,
         region=settings.s3_region,
     )
-    _start_services()
+
+    if services:
+        _start_services()
 
     s3_fs.create_dir(settings.bucket_name)
 
@@ -49,7 +51,7 @@ def bootstrap():
     _bootstrap_catalog(settings)
 
     client = Client.for_location(settings.flight_server_url)
-
+    client.ping(5)
     handle_iceberg_upload(client,
                            "trips",
                            "rides", TRIP_DATA_FILE,

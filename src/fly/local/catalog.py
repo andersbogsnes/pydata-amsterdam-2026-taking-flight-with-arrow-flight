@@ -9,11 +9,11 @@ def _bootstrap_project(client: httpx2.Client) -> None:
 
     match resp.status_code:
         case 204:
-            console.print("[green]✔[/green] Catalog bootstrapped successfully")
+            console.print(" [green]✔[/green] Catalog bootstrapped successfully")
         case 400:
             match resp.json():
                 case {"error": {"type": "CatalogAlreadyBootstrapped"}}:
-                    console.print("[green]✔[/green] Catalog already bootstrapped")
+                    console.print(" [green]✔[/green] Catalog already bootstrapped")
                 case message:
                     console.print(message)
                     raise RuntimeError("Failed to bootstrap catalog")
@@ -58,9 +58,9 @@ def _bootstrap_warehouse(client: httpx2.Client, settings: Settings) -> None:
         case 400 | 409:
             match resp.json():
                 case {"error": {"type": "CreateWarehouseStorageProfileOverlap"}}:
-                    console.print("[green]✔[/green] Warehouse already bootstrapped")
+                    console.print(" [green]✔[/green] Warehouse already bootstrapped")
                 case {"error": {"type": "WarehouseAlreadyExists"}}:
-                    console.print("[green]✔[/green] Warehouse already bootstrapped")
+                    console.print(" [green]✔[/green] Warehouse already bootstrapped")
                 case message:
                     console.print(message)
                     raise RuntimeError(f"Failed to bootstrap warehouse: {message}")

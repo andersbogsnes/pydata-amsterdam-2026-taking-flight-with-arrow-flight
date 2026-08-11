@@ -6,8 +6,6 @@ services:
     build:
       context: .
       dockerfile: rest/Dockerfile
-      tags:
-        - "docker.io/andersbogsnes/flight_rest:1.0.0"
     ports:
       - "8000:8000"
     environment:
@@ -29,10 +27,8 @@ services:
     build:
       context: .
       dockerfile: flight_server/Dockerfile
-      tags:
-        - "docker.io/andersbogsnes/flight_server:1.0.0"
     ports:
-      - "7000:7000"
+      - "7001:7001"
     depends_on:
       db:
         condition: service_healthy
@@ -42,7 +38,7 @@ services:
       - MODE=local
       - CATALOG_URL=http://lakekeeper:8181/catalog
     healthcheck:
-      test: [ "CMD", "python", "-c", "from pyarrow import flight; flight.FlightClient('grpc://localhost:7000').wait_for_available(timeout=5)" ]
+      test: [ "CMD", "python", "-c", "from pyarrow import flight; flight.FlightClient('grpc://localhost:7001').wait_for_available(timeout=5)" ]
       interval: 5s
       timeout: 5s
       retries: 10

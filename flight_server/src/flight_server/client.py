@@ -16,7 +16,7 @@ class Client:
     _client: flight.FlightClient
 
     @classmethod
-    def for_location(cls, location: str = "grpc://localhost:7000") -> Self:
+    def for_location(cls, location: str = "grpc://localhost:7001") -> Self:
         client = flight.FlightClient(location)
         return cls(client=client)
 
@@ -147,9 +147,10 @@ class Client:
 
     def create_namespace(self, name: str) -> None:
         request = CreateNamespaceRequest(name=name)
-        self._client.do_action(
+        result = self._client.do_action(
             flight.Action(
                 action_type="create_namespace", buf=request.model_dump_json().encode()
             )
         )
+        next(result)
 

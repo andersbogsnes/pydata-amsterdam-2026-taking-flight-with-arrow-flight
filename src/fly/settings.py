@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     db_url: PostgresDsn = PostgresDsn(
         "postgresql+psycopg://postgres:postgres@localhost:5432"
     )
-    flight_server_url: str = "grpc://localhost:7000"
+    flight_server_url: str = "grpc://localhost:7001"
     bucket_name: str = "trips"
     namespace: str = "trips"
 

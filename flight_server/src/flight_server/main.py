@@ -18,7 +18,7 @@ def run_server() -> None:
     flight_server = Server(
         settings,
         location=settings.flight_server_url,
-        auth_handler=TokenServerAuthHandler(token=settings.token),
+        auth_handler=None if settings.mode == "local" else TokenServerAuthHandler(token=settings.token),
     )
 
     is_shutting_down = False
