@@ -140,7 +140,7 @@ class Client:
             info: flight.FlightInfo = self._client.get_flight_info(
                 flight.FlightDescriptor.for_path(table)
             )
-        except flight.FlightServerError:
+        except (flight.FlightError, NotImplementedError):
             return False
 
         return info.total_records >= 0
@@ -152,3 +152,4 @@ class Client:
                 action_type="create_namespace", buf=request.model_dump_json().encode()
             )
         )
+

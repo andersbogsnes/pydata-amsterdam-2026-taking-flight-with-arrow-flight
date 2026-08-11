@@ -2,12 +2,18 @@ from collections.abc import AsyncIterable
 
 import sqlalchemy as sa
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 
 from rest import auth, db
 from rest.dependencies import DbConn
 from rest.models import Ride
 
 app = FastAPI(dependencies=[Depends(auth.verify_user)])
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health")

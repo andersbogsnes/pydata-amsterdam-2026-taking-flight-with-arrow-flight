@@ -1,7 +1,5 @@
-import datetime as dt
 import json
 from collections.abc import Iterator
-from typing import cast
 
 import polars as pl
 import pyarrow as pa
@@ -9,7 +7,7 @@ import structlog
 from pyarrow import flight
 from pyiceberg.catalog.rest import RestCatalog
 from pyiceberg.exceptions import BadRequestError, NoSuchTableError, RESTError
-from pyiceberg.expressions import AlwaysTrue, GreaterThanOrEqual, LessThanOrEqual
+from pyiceberg.expressions import AlwaysTrue
 
 from flight_server import metrics
 from flight_server.exceptions import IcebergCatalogueException, handle_flight_errors
@@ -63,12 +61,13 @@ class Server(flight.FlightServerBase):
         """Lazily instantiates the catalog, since it tries to connect during __init__"""
         if self._rest_catalog is None:
             try:
-                catalog = RestCatalog("default", **self._catalog_config)
+                logger.info("connecting to catalog", **self._catalog_config)
+                self._rest_catalog = RestCatalog("default", **self._catalog_config)
             except RESTError as e:
+                logger.error("unable to connect to catalog")
                 raise IcebergCatalogueException(
                     "unable to connect to Iceberg Catalog"
                 ) from e
-            return catalog
         return self._rest_catalog
 
     def _make_flight_info(self, identifier: str) -> flight.FlightInfo:
@@ -129,14 +128,19 @@ class Server(flight.FlightServerBase):
 
         filters = AlwaysTrue() if request.filters is None else request.filters
 
+        schema = table.schema().as_arrow()
         reader = table.scan(
             selected_fields=request.columns,
             row_filter=filters,
         ).to_arrow_batch_reader()
+        del table
 
         def gen():
             try:
                 yield from reader
+            except GeneratorExit:
+                reader.close()
+                raise
             except Exception as e:
                 logger.exception("error streaming data")
                 raise flight.FlightServerError(str(e)) from e
@@ -144,9 +148,8 @@ class Server(flight.FlightServerBase):
                 reader.close()
 
         log.info("starting stream")
-        # Because Flight is GRPC-based, it supports streaming the data by default.
         return flight.GeneratorStream(
-            schema=table.schema().as_arrow(),
+            schema=schema,
             generator=gen(),
         )
 
@@ -219,6 +222,7 @@ class Server(flight.FlightServerBase):
         """
         table_name = f"{self._namespace}.{descriptor.path[0].decode('utf-8')}"
         log = logger.bind(table_name=table_name, method="do_put")
+        log.info("do_put called")
         if not self._catalog.table_exists(table_name):
             log.info("creating table")
             try:
@@ -247,9 +251,10 @@ class Server(flight.FlightServerBase):
                 batches.append(chunk.data)
                 row_count += chunk.data.num_rows
                 total_rows += chunk.data.num_rows
-                if row_count >= 1_000_000:
+                if row_count >= 50_000:
                     pa_table = pa.Table.from_batches(batches, reader.schema)
                     tx.append(pa_table)
+                    del pa_table
                     batches = []
                     row_count = 0
 

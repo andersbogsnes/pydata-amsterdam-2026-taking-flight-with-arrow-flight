@@ -3,11 +3,11 @@ group "default" {
 }
 
 variable "flight_rest_version" {
-  default = "1.0.0"
+  default = "1.0.1"
 }
 
 variable "flight_server_version" {
-  default = "1.0.0"
+  default = "1.0.2"
 }
 
 target "rest" {

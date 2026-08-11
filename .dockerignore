@@ -166,3 +166,4 @@ data/
 
 /tf/.terraform.lock.hcl
 data
+notebooks

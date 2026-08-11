@@ -11,7 +11,7 @@ def verify_user(
     request: Request,
     bearer_token: Annotated[HTTPAuthorizationCredentials | None, Depends(auth)],
 ):
-    if request.url.path == "/health":
+    if request.url.path in ("/health", "/", "/docs"):
         return
 
     if bearer_token is None:
