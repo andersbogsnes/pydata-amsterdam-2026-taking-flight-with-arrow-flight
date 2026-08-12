@@ -10,9 +10,10 @@ from fly.remote.compose import _start_services
 from fly.settings import Settings
 from fly.shared.db import handle_db_upload
 from fly.shared.iceberg import handle_iceberg_upload
+from fly.shared.catalog import bootstrap_catalog
 from rest import db as rest_db
 
-cmd = cyclopts.App(name="remote", help="remote deployment of project")
+cmd = cyclopts.App(name="remote", help="remote deployment of project - requires AWS setup")
 
 DATA_DIR = pathlib.Path(__file__).parents[3] / "data"
 
@@ -20,7 +21,7 @@ TRIP_DATA_FILE = DATA_DIR / "202601-citibike-tripdata_1.csv"
 
 
 @cmd.command()
-def bootstrap():
+def bootstrap(services: bool = True):
     """Configure services and upload initial data"""
 
     if not TRIP_DATA_FILE.exists():
@@ -30,8 +31,10 @@ def bootstrap():
         )
 
     settings = Settings(_env_file="aws.env")
-    _start_services()
 
+    if services:
+        _start_services()
+    bootstrap_catalog(settings)
     engine = sa.create_engine(settings.db_url.unicode_string())
     rest_db.meta.create_all(engine)
 

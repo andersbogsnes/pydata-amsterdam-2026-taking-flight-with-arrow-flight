@@ -3,7 +3,7 @@ group "default" {
 }
 
 variable "flight_rest_version" {
-  default = "1.0.1"
+  default = "1.0.2"
 }
 
 variable "flight_server_version" {
@@ -12,14 +12,16 @@ variable "flight_server_version" {
 
 target "rest" {
   context    = "."
+  platforms = ["linux/amd64"]
   dockerfile = "rest/Dockerfile"
-  tags = ["docker.io/andersbogsnes/flight_rest:${flight_rest_version}"]
+  tags = ["registry.fly.io/arrow-flight-rest:${flight_rest_version}"]
   output = [{ type = "registry" }]
 }
 
 target "flight_server" {
   context    = "."
+  platforms = ["linux/amd64"]
   dockerfile = "flight_server/Dockerfile"
-  tags = ["docker.io/andersbogsnes/flight_server:${flight_server_version}"]
+  tags = ["registry.fly.io/arrow-flight-server:${flight_server_version}"]
   output = [{ type = "registry" }]
 }

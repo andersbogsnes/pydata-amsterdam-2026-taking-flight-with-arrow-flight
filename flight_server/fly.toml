@@ -4,11 +4,8 @@
 app = 'arrow-flight-server'
 primary_region = 'arn'
 
-[build]
-image = "andersbogsnes/flight_server:1.0.1"
-
 [http_service]
-internal_port = 7000
+internal_port = 7001
 force_https = true
 auto_stop_machines = 'stop'
 auto_start_machines = true

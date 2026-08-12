@@ -222,6 +222,23 @@ wheels = [
 ]
 
 [[package]]
+name = "buf-bin"
+version = "1.72.0"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d9/4d/4b305995cc79c08abfff452b97df4f78c0bf22e54b55d30c9e3ff3e3e6a8/buf_bin-1.72.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:80b91a34c1bde6103909522423692fd174add77be14f9549c90d0331ac22f041", size = 15371262, upload-time = "2026-07-17T20:39:53.022Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/e0/3dc0dd9c98ab862236171fd2799bec0eb955b076eeb5c1345a474ff317d3/buf_bin-1.72.0-py3-none-macosx_11_0_x86_64.whl", hash = "sha256:c3cb5720e8905290b0d08ad49b4f57f73b8e1f19c85cad7f7746ecfc2fb3fd06", size = 16538315, upload-time = "2026-07-17T20:39:56.13Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/7d/f98609c72149f8f47408d887f265a30c4bfa030af97b2d160fabc401b61a/buf_bin-1.72.0-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:79e9e0622e7b61a11b7267e33ac5e3bc9862eb45fe73098b74f961d1d398c467", size = 14560062, upload-time = "2026-07-17T20:39:59.104Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/92/ece9420f79ea0bc3803e659c7633f3c5795e850f32721c88bc8d937bcf8f/buf_bin-1.72.0-py3-none-manylinux2014_armv7l.manylinux_2_17_armv7l.musllinux_1_1_armv7l.whl", hash = "sha256:faf906ca80efea5e16024d816f3edb4dbc0006bc5ac77dbe9b0cc2987d58cee7", size = 14746573, upload-time = "2026-07-17T20:40:01.841Z" },
+    { url = "https://files.pythonhosted.org/packages/81/69/7a8a68c9b1155b5611415ca745b27c2b00332a970b14fd881d681e93b948/buf_bin-1.72.0-py3-none-manylinux2014_ppc64le.manylinux_2_17_ppc64le.musllinux_1_1_ppc64le.whl", hash = "sha256:1563276ff0c35addd796c674e8a84f95f88a3fa567f3329ecdd7ffec35efea93", size = 14256237, upload-time = "2026-07-17T20:40:04.578Z" },
+    { url = "https://files.pythonhosted.org/packages/36/ec/3bff6981672c1a5a2b4ceb51e82a252d3521c83c95a3426a4de25a3c3dad/buf_bin-1.72.0-py3-none-manylinux2014_s390x.manylinux_2_17_s390x.musllinux_1_1_s390x.whl", hash = "sha256:f8f077ffc21b8eb47b63e001988fdb3f638cb62431ec3d6b9d40ba826ec5761c", size = 15508730, upload-time = "2026-07-17T20:40:08.364Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/d1/d54430879c503643e3b5ca8b9ed6072b006ad263babd95fc9bfdf0e1a2bf/buf_bin-1.72.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:01573bdff85d11b905f431dc707e954e4ecc408bb65983d1b6f77098b112151f", size = 16134094, upload-time = "2026-07-17T20:40:11.334Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/b9/01d8d60211a0b27e2199d0c50bc265d750c55237708df1f3fb0d4929f1a1/buf_bin-1.72.0-py3-none-manylinux_2_17_riscv64.musllinux_1_2_riscv64.whl", hash = "sha256:879e29b073d976fc21ea3e2464fceca904f92cb5ce4b7bbaf2b56e8ab5a090b1", size = 14759134, upload-time = "2026-07-17T20:40:14.265Z" },
+    { url = "https://files.pythonhosted.org/packages/87/2a/4d0d8b4289e11f48867c913d419ca0ddccec9a0ac48e483a549b948daebd/buf_bin-1.72.0-py3-none-win_amd64.whl", hash = "sha256:21939478a4db814d4465fc09123f6a44e62e546a3f18c025c5744741238e7021", size = 16476768, upload-time = "2026-07-17T20:40:17.188Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/b4/f7c85432667929de32fb340f2793267f3d242450586ac155b65237d67722/buf_bin-1.72.0-py3-none-win_arm64.whl", hash = "sha256:a92484e502e11ebd90b528eef5c09e21eeb1d83fffeb29edef284a3f76e04025", size = 14649036, upload-time = "2026-07-17T20:40:20.217Z" },
+]
+
+[[package]]
 name = "cachetools"
 version = "6.2.6"
 source = { registry = "https://pypi.org/simple" }
@@ -452,12 +469,17 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "adbc-driver-postgresql" },
+    { name = "buf-bin" },
     { name = "connectorx" },
     { name = "cyclopts" },
     { name = "duckdb" },
     { name = "flight-server" },
+    { name = "grpcio" },
     { name = "httpx2" },
     { name = "jupyterlab" },
+    { name = "protobuf-py" },
+    { name = "protoc-gen-grpc-py" },
+    { name = "protoc-gen-py" },
     { name = "pyarrow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -479,12 +501,17 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "adbc-driver-postgresql", specifier = ">=1.12.0" },
+    { name = "buf-bin", specifier = ">=1.72.0" },
     { name = "connectorx", specifier = ">=0.4.5" },
     { name = "cyclopts", specifier = ">=4.22.3" },
     { name = "duckdb", specifier = ">=1.5.5" },
     { name = "flight-server", editable = "flight_server" },
+    { name = "grpcio", specifier = ">=1.83.0" },
     { name = "httpx2", specifier = ">=2.9.1" },
     { name = "jupyterlab", specifier = ">=4.6.2" },
+    { name = "protobuf-py", specifier = ">=0.3.0" },
+    { name = "protoc-gen-grpc-py", specifier = ">=0.3.0" },
+    { name = "protoc-gen-py", specifier = ">=0.3.0" },
     { name = "pyarrow", specifier = ">=25.0.0" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
@@ -535,6 +562,27 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b1/6d/24240bf562e9786dd2799ee0a4a4dadb4ded22510f41b20245099159ac8c/greenlet-3.5.4-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:bae2728e1897aa8df8cb1af38cd48b3a743aefe29372de7b8b7a9f532501e69f", size = 1645781, upload-time = "2026-07-22T11:51:14.805Z" },
     { url = "https://files.pythonhosted.org/packages/c1/5a/442ab1a9ef7ca6bf7210e5397a95972206a91a31033a03c8900866a10039/greenlet-3.5.4-cp313-cp313-win_amd64.whl", hash = "sha256:ca5726c0b08ca35ae873557266a78b2c3f3b2b7d7401aa5ff886c2045dd0111c", size = 247133, upload-time = "2026-07-22T11:39:20.661Z" },
     { url = "https://files.pythonhosted.org/packages/3e/e6/9160210222386b1a378ff94db846b9508ca24a121cf684991561fdb69280/greenlet-3.5.4-cp313-cp313-win_arm64.whl", hash = "sha256:7c1303791d603080cac6fc3b34df51c3b75b723739c282c8029e48a0d241672f", size = 245500, upload-time = "2026-07-22T11:40:22.185Z" },
+]
+
+[[package]]
+name = "grpcio"
+version = "1.83.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0c/98/304898ac4e04e2d5e4e4c2eadc178b1f2a16d5f4bc2f91306c87d64680b9/grpcio-1.83.0.tar.gz", hash = "sha256:7674587248fbbb2ac6e4eecf83a8a0f3d91a928f941de571acfd3a2f007fbc24", size = 13428824, upload-time = "2026-07-23T15:20:37.759Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/56/eb/135daaa713f32d33b8f99b4153b3f8dc3b2a124996ac15581bf9ebdad3c3/grpcio-1.83.0-cp313-cp313-linux_armv7l.whl", hash = "sha256:6662f3b1e07cc7493d437351860dc867bddc6a93c83ecf33bbfdaf0c217ab2d0", size = 6304480, upload-time = "2026-07-23T15:19:53.962Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/a1/121806ce69f23138dabe06aa595b0e5f1ae051a37e4c1954eed7d692c800/grpcio-1.83.0-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:74fe6f9e8a35c7dbf32255ee154d15e3e5338a81ed39173d079d594d2e544cd1", size = 12154419, upload-time = "2026-07-23T15:19:56.3Z" },
+    { url = "https://files.pythonhosted.org/packages/b0/e8/d0389e09cd6b4c4d3089b92967ae4e3ffd64795bd349bf2f85cd6656d3da/grpcio-1.83.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:10b3fa0475eb572c9a81a6fe37fa16a9c500c0c91cfc148cac15692b7e3c2867", size = 6873200, upload-time = "2026-07-23T15:19:58.701Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/51/f464c1d211fa50d5adbabe1b2e519948d99c13757052bfc9ea7afa28e284/grpcio-1.83.0-cp313-cp313-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:5f20a988480b0f28207f057f7f7ae1313393c3cef0adcfeae8248f9947eaf881", size = 7618811, upload-time = "2026-07-23T15:20:00.733Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/c0/539fe0832f2dd6500a28f5263071623fb34e8d4867aec632ccf81bd21156/grpcio-1.83.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:7bd82671b39065ba18cd536e9cd45b27ff649053f81ddd2c6a966d595067080f", size = 7042310, upload-time = "2026-07-23T15:20:02.675Z" },
+    { url = "https://files.pythonhosted.org/packages/8c/ca/ccf617d37ffa72567fa8e005ec7090c99da922799be2fb9847c8b21ca18c/grpcio-1.83.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:bc60215b5cb9fc8ca72942c498b551ac2305bd08f6ef8d4e3f0d21b64fbecd61", size = 7575412, upload-time = "2026-07-23T15:20:04.712Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/b9/fd8d5245f823a8e0fd35d90e20ea3aa4acd47f8d5318fa8df307df52dec6/grpcio-1.83.0-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:f1c3e5689d4b90987b1d72022bcfe866a9a3dc66197484cf856d96b6150e7f45", size = 8604248, upload-time = "2026-07-23T15:20:06.77Z" },
+    { url = "https://files.pythonhosted.org/packages/14/1e/f37632fc11db72dfa4bba86c3a43e54358e53030df111ecae5e91a733ad6/grpcio-1.83.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:a21cb4eeeba124443f399be2e8b624943cde864dcbe588cb42e5c483a52a906c", size = 7977458, upload-time = "2026-07-23T15:20:09.109Z" },
+    { url = "https://files.pythonhosted.org/packages/93/b6/d70b69ae5c0cfc341b9ba474980e4ed99cbf05c0e4a14e9eee8cb73db0a5/grpcio-1.83.0-cp313-cp313-win32.whl", hash = "sha256:8fe04f1050a59f875601eb55d42b4f66946fe89817f967e34db1462ccd07dadf", size = 4393993, upload-time = "2026-07-23T15:20:11.017Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/13/45d4cccb555cf4c476226979bf3d2fd0b0254216f7564c3a053e35117efc/grpcio-1.83.0-cp313-cp313-win_amd64.whl", hash = "sha256:6e01ecd9d8ef280abe1365138a4dc318f9a5287f4cb1b41d07816f796653f735", size = 5159650, upload-time = "2026-07-23T15:20:12.979Z" },
 ]
 
 [[package]]
@@ -1228,6 +1276,62 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/7d/ea/39b988c938f75cb75d7045b5c69f8bfed47ee2152c8837fb403de29d6fb8/prompt_toolkit-3.0.53.tar.gz", hash = "sha256:9ec8a0ad96d5c56148b3f914aa79c1564c3fde5d2e6b876e7bc327e353cf8fa6", size = 435492, upload-time = "2026-07-26T20:56:14.758Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/6f/84908cad2d6aa5144abcf7b42709fe4fdb459bc640ec7ac5786e7693dabc/prompt_toolkit-3.0.53-py3-none-any.whl", hash = "sha256:01c0891d7f9237d5e339f7d3e42cdae80b7534abb1c7c0e3352efba6231492f2", size = 392288, upload-time = "2026-07-26T20:56:12.512Z" },
+]
+
+[[package]]
+name = "protobuf-py"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "protobuf-py-ext", marker = "(platform_machine == 'arm64' and platform_python_implementation == 'CPython' and sys_platform == 'darwin') or (platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'x86_64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'AMD64' and platform_python_implementation == 'CPython' and sys_platform == 'win32') or (platform_machine == 'ARM64' and platform_python_implementation == 'CPython' and sys_platform == 'win32')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/96/fa/cd8192cc89c7373a8864f310b423faa0ca23679f68e70b16abc7512e2570/protobuf_py-0.3.0.tar.gz", hash = "sha256:3fd187380a85b9850ec548b324eb1a6f5e3a70d62d483ef73c4ed62e0791c26c", size = 157327, upload-time = "2026-08-07T01:24:24.066Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/1a/764caf932a88d63cd68f2d53d3cb34a62c61c252f22536ed7fb1050c378c/protobuf_py-0.3.0-py3-none-any.whl", hash = "sha256:821d2b48f83c98e0c6b8eddc1f7b3ab89f6ea5c5f797952c716a5bc300290923", size = 205193, upload-time = "2026-08-07T01:23:40.072Z" },
+]
+
+[[package]]
+name = "protobuf-py-ext"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/b8/ea997e3f3c29ec39f0dbe9cd64482e08d1a0f0947ccb81fefb1bc53e655b/protobuf_py_ext-0.3.0.tar.gz", hash = "sha256:d6a34587eceb5ef6777fb3dedc1c61f1192da71d5f79049a8028ad06313d2d84", size = 57167, upload-time = "2026-08-07T01:24:25.117Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/27/20658c04dd4c403d82b5e5f3772f15ee9a1e9ce2898c2f2b35597e613427/protobuf_py_ext-0.3.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:32757358a6e3b2f56648eb7268dd34db06f97bb95c501d033fcb6435a9c16bb6", size = 469520, upload-time = "2026-08-07T01:23:41.93Z" },
+    { url = "https://files.pythonhosted.org/packages/00/3e/c9bb496284355b19b13e699a4a47af9a82fe75a7dbaf17e80a014827cdc3/protobuf_py_ext-0.3.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ddadde8fc52dbd5baf95fd9399696da4da198a8d8f5d26e0d3b82ce78003690b", size = 476076, upload-time = "2026-08-07T01:23:43.663Z" },
+    { url = "https://files.pythonhosted.org/packages/78/12/698b371bf31c9ae9932739fabb8455f59dcbbe37efade5fed7f0bbf06d6a/protobuf_py_ext-0.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1f3c1a6fccc04baf459ac9b6c6d081ed865e55df3d28da912c7ac853fff22a5a", size = 499103, upload-time = "2026-08-07T01:23:45.131Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/f0/710711ea30665aa90bc9f06eb03b9c08c214b35983375e9f8500c650efd2/protobuf_py_ext-0.3.0-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:9f02991fce2386d17995bda2ad95131c23eda6391812822e5dc884798a6cfede", size = 653224, upload-time = "2026-08-07T01:23:46.688Z" },
+    { url = "https://files.pythonhosted.org/packages/48/88/38c152ec0b1e3a44f0f9c3391022c1ee503fb09d6bb55343354aa6252708/protobuf_py_ext-0.3.0-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:177214198ebc2b4553375e84cef09d68be8e2b72a914420b5207436a3069a99b", size = 711813, upload-time = "2026-08-07T01:23:48.083Z" },
+    { url = "https://files.pythonhosted.org/packages/17/7f/d847aed3628f4f29c33c697856a6f1d9de7cf771bdc933b3f50cbe72ad22/protobuf_py_ext-0.3.0-cp310-abi3-win_amd64.whl", hash = "sha256:b9dec4035f401ebe146e10779ce688cd49baf19e4b452552b8df37211df1377a", size = 435724, upload-time = "2026-08-07T01:23:49.717Z" },
+    { url = "https://files.pythonhosted.org/packages/54/4c/b7c9f00d117f74e6639e48a85ef59c2caec9e90cc97c48319b910a87cd67/protobuf_py_ext-0.3.0-cp310-abi3-win_arm64.whl", hash = "sha256:7c9577afe77f0b92ac43a81422c45c46a4aa3bc46adcdbb763188adee4aa0393", size = 417445, upload-time = "2026-08-07T01:23:51.063Z" },
+    { url = "https://files.pythonhosted.org/packages/58/71/ecfb4d93d5485062b6dc45ff71f746ccd102089ca480127fbba3c1ed1156/protobuf_py_ext-0.3.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:4a01b6df42a9f813da653f8d07937086dd1d8b79ecbb557bde812fb19223924d", size = 467279, upload-time = "2026-08-07T01:24:00.565Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/ff/b7f3cd77739ef4644618e334b37a44da15b722a220facb947e1d02e09680/protobuf_py_ext-0.3.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b625feca85f01237b9f2a3c1a729592423f5c8ab4f30b183059eb527d695c148", size = 472727, upload-time = "2026-08-07T01:24:02.016Z" },
+    { url = "https://files.pythonhosted.org/packages/21/11/551d0f6d5bc57ed0cf857f76969b115c9c41866c004e091b9c6b3ec0124b/protobuf_py_ext-0.3.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7acb648ec9e547d65742260e56104244b4e366efd5dd8e965a5d3d8c397c2bd2", size = 493745, upload-time = "2026-08-07T01:24:03.64Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/8d/fb42e248ae91e6bf09127597ad741df88f9b869ca5816eea0537e53946f0/protobuf_py_ext-0.3.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:a1f2b9935518b1f4a4359b08e123a272ca7dc23b75db979a80a8b33548f26f78", size = 650196, upload-time = "2026-08-07T01:24:05.025Z" },
+    { url = "https://files.pythonhosted.org/packages/00/86/9ef8097465106802733f933b6e4bdf6ca7360419fca00bf9e4924ac1c894/protobuf_py_ext-0.3.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:3f79b520ec328228307102c8ade14f5ee9129184184894a87a37567fe9f0157c", size = 706523, upload-time = "2026-08-07T01:24:06.431Z" },
+]
+
+[[package]]
+name = "protoc-gen-grpc-py"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "protobuf-py" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f2/76/d1604a93b0108bdb38a0b4170b936bbeaed411d8d269c81272ce1d3922da/protoc_gen_grpc_py-0.3.0.tar.gz", hash = "sha256:468940f001a67374843cf2910a3e0da28a8247dc874faaaa93cdcd4cdd404328", size = 11837, upload-time = "2026-08-11T00:18:10.245Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fd/39/32f6bc6b74db22965e0544902145f3e042036dc339f38386cfc1e8be399b/protoc_gen_grpc_py-0.3.0-py3-none-any.whl", hash = "sha256:33009558bcaeb67fb43c36a56f3e0c80bee82fb7fc43bd87d22f57d5acfe6026", size = 12031, upload-time = "2026-08-11T00:18:09.159Z" },
+]
+
+[[package]]
+name = "protoc-gen-py"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "protobuf-py" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/23/11/746537632d612ad471fabce7983eb2813d6d3b79b818ac7195f8922d253c/protoc_gen_py-0.3.0.tar.gz", hash = "sha256:aab7af24308cbe64c7f448f48efd87f4f965a959de8f2cc0ecb04605476dd92a", size = 10998, upload-time = "2026-08-07T01:24:26.062Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/0d/458c7ca2f608ff234575936a427d273b55574f48571b25e2e101ec221742/protoc_gen_py-0.3.0-py3-none-any.whl", hash = "sha256:75fec1eb566ef54f4e7728a9d475859d046db83e41dda16c053ee7b8371c3b6b", size = 12441, upload-time = "2026-08-07T01:24:22.943Z" },
 ]
 
 [[package]]

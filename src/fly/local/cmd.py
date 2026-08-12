@@ -1,17 +1,17 @@
 import pathlib
 
 import cyclopts
+import pyarrow as pa
 import sqlalchemy as sa
 from flight_server.client import Client
 from pyarrow.fs import S3FileSystem
-import pyarrow as pa
 
 from fly.console import console
-from fly.local.catalog import _bootstrap_catalog
+from fly.shared.catalog import bootstrap_catalog
 from fly.local.compose import _start_services
+from fly.settings import Settings
 from fly.shared.db import handle_db_upload
 from fly.shared.iceberg import handle_iceberg_upload
-from fly.settings import Settings
 from rest import db as rest_db
 
 cmd = cyclopts.App(name="local", help="local deployment of project")
@@ -48,7 +48,7 @@ def bootstrap(services: bool = True):
     engine = sa.create_engine(settings.db_url.unicode_string())
     rest_db.meta.create_all(engine)
 
-    _bootstrap_catalog(settings)
+    bootstrap_catalog(settings)
 
     client = Client.for_location(settings.flight_server_url)
     client.ping(5)

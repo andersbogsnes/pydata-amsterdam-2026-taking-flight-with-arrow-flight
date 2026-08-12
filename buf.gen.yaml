@@ -1,0 +1,8 @@
+version: v2
+inputs:
+  - directory: notebooks/proto
+plugins:
+  - local: protoc-gen-py
+    out: notebooks/gen
+  - local: protoc-gen-grpc-py
+    out: notebooks/gen

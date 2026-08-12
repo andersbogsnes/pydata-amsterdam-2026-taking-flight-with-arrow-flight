@@ -327,12 +327,8 @@ class Server(flight.FlightServerBase):
                 request = CreateNamespaceRequest.model_validate_json(
                     action.body.to_pybytes().decode("utf-8")
                 )
-                try:
-                    self._catalog.create_namespace(request.name)
-                except NamespaceAlreadyExistsError:
-                    raise flight.FlightServerError(
-                        f"Namespace {request.name} already exists"
-                    )
+                self._catalog.create_namespace_if_not_exists(request.name)
+
             case "update_description":
                 request = UpdateDatasetRequest.model_validate_json(
                     action.body.to_pybytes().decode("utf-8")

@@ -69,7 +69,7 @@ def _bootstrap_warehouse(client: httpx2.Client, settings: Settings) -> None:
             raise RuntimeError(f"Failed to bootstrap catalog: {resp.text}")
 
 
-def _bootstrap_catalog(settings: Settings) -> None:
+def bootstrap_catalog(settings: Settings) -> None:
     with httpx2.Client(base_url=settings.catalog_url) as client:
         _bootstrap_project(client)
         _bootstrap_warehouse(client, settings)

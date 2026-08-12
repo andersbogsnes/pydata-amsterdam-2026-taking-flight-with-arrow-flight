@@ -5,7 +5,7 @@ app = 'arrow-flight-rest'
 primary_region = 'arn'
 
 [build]
-image = "andersbogsnes/flight_rest:1.0.1"
+image = "andersbogsnes/flight_rest:1.0.2"
 
 [http_service]
 internal_port = 8000
@@ -15,7 +15,6 @@ auto_start_machines = true
 min_machines_running = 0
 processes = ['app']
 
-[[http_service.checks]]
 [[http_service.checks]]
 grace_period = "10s"
 interval = "30s"
