@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+message LatLng {
+  string lat_column = 1;
+  string lng_column = 2;
+}
+
+message CalculateDistanceMetricRequest {
+  enum DistanceMetrics {
+    UNKNOWN = 0;
+    MANHATTAN = 1;
+    EUCLIDEAN = 2;
+  }
+  DistanceMetrics metric = 1;
+  LatLng start = 2;
+  LatLng end = 3;
+}
