@@ -147,10 +147,9 @@ class Client:
 
     def create_namespace(self, name: str) -> None:
         request = CreateNamespaceRequest(name=name)
-        result = self._client.do_action(
+        self._client.do_action(
             flight.Action(
                 action_type="create_namespace", buf=request.model_dump_json().encode()
             )
         )
-        next(result)
 
