@@ -3,22 +3,21 @@ import threading
 
 import structlog
 
-from flight_server import logging
-from flight_server.auth import TokenServerAuthHandler
+from flight_server import logs
 from flight_server.server import Server
 from flight_server.settings import Settings
 
 
 def run_server() -> None:
     settings = Settings()
-    logging.configure_logging(settings.mode == "local")
+    logs.configure_logging(settings.mode == "local")
 
     logger = structlog.get_logger(__name__)
 
     flight_server = Server(
         settings,
         location=settings.flight_server_url,
-        auth_handler=None if settings.mode == "local" else TokenServerAuthHandler(token=settings.token),
+        # auth_handler=None if settings.mode == "local" else TokenServerAuthHandler(token=settings.token),
     )
 
     is_shutting_down = False

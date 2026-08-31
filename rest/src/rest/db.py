@@ -6,7 +6,6 @@ meta = sa.MetaData()
 rides_table = sa.Table(
     "rides",
     meta,
-
     sa.Column("ride_id", sa.Text, primary_key=True),
     sa.Column("rideable_type", sa.Text, nullable=False),
     sa.Column("started_at", sa.DateTime, nullable=False),

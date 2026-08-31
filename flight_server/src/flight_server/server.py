@@ -6,7 +6,11 @@ import pyarrow as pa
 import structlog
 from pyarrow import flight
 from pyiceberg.catalog.rest import RestCatalog
-from pyiceberg.exceptions import BadRequestError, NoSuchTableError, RESTError, NamespaceAlreadyExistsError
+from pyiceberg.exceptions import (
+    BadRequestError,
+    NoSuchTableError,
+    RESTError,
+)
 from pyiceberg.expressions import AlwaysTrue
 
 from flight_server import metrics
@@ -61,7 +65,6 @@ class Server(flight.FlightServerBase):
         """Lazily instantiates the catalog, since it tries to connect during __init__"""
         if self._rest_catalog is None:
             try:
-                
                 self._rest_catalog = RestCatalog("default", **self._catalog_config)
                 logger.info("connected to catalog", **self._catalog_config)
             except RESTError as e:
@@ -134,7 +137,6 @@ class Server(flight.FlightServerBase):
             selected_fields=request.columns,
             row_filter=filters,
         ).to_arrow_batch_reader()
-        del table
 
         def gen():
             try:
@@ -143,9 +145,10 @@ class Server(flight.FlightServerBase):
                 reader.close()
                 raise
             except Exception as e:
-                logger.exception("error streaming data")
+                log.exception("error streaming data")
                 raise flight.FlightServerError(str(e)) from e
             finally:
+                log.info("stream closed")
                 reader.close()
 
         log.info("starting stream")
@@ -268,6 +271,7 @@ class Server(flight.FlightServerBase):
         )
         writer.write(response.model_dump_json(exclude_unset=True).encode())
 
+    @handle_flight_errors
     def list_actions(self, _: flight.ServerCallContext) -> Iterator[flight.ActionType]:
         """Flight has native support for actions.
         Actions are a way to perform arbitrary operations, and list_actions is a discovery

@@ -23,6 +23,7 @@ def _unzip_file(zip_file: pathlib.Path, output_dir: pathlib.Path) -> None:
     with zipfile.ZipFile(zip_file, "r") as zip_ref:
         zip_ref.extractall(output_dir)
 
+
 def _fetch_expected_size(url: str) -> int:
     """Fetches the expected size of the file from the given URL."""
     resp = httpx2.head(url)

@@ -17,7 +17,7 @@ class Client:
 
     @classmethod
     def for_location(cls, location: str = "grpc://localhost:7001") -> Self:
-        client = flight.FlightClient(location)
+        client: flight.FlightClient = flight.connect(location)
         return cls(client=client)
 
     def ping(self, timeout=5) -> None:
@@ -152,4 +152,3 @@ class Client:
                 action_type="create_namespace", buf=request.model_dump_json().encode()
             )
         )
-

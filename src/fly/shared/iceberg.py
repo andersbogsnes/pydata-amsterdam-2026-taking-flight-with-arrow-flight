@@ -1,7 +1,6 @@
 import pathlib
 
 from flight_server.client import Client
-from pyarrow._flight import FlightServerError
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -15,17 +14,11 @@ from fly.console import console
 
 def handle_iceberg_upload(
     client: Client,
-    namespace_name: str,
     table_name: str,
     data_file: pathlib.Path,
     dtypes: dict | None = None,
 ):
     """Uploads the data file to the Iceberg table"""
-
-    try:
-        client.create_namespace(namespace_name)
-    except FlightServerError:
-        pass
 
     if client.table_exists(table_name):
         console.print(

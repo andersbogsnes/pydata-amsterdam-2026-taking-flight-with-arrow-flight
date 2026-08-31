@@ -165,5 +165,6 @@ data/
 /tf/.terraform/
 
 /tf/.terraform.lock.hcl
-data
 notebooks
+.aws
+.junie

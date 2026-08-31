@@ -166,4 +166,5 @@ cython_debug/
 data/*.csv
 /tf/.terraform/
 /tf/.terraform.lock.hcl
-notebooks/.Trash-0
+notebooks/.Trash-0/
+.aws

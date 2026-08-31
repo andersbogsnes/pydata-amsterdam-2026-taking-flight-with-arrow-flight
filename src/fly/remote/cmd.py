@@ -8,12 +8,14 @@ from flight_server.client import Client
 from fly.console import console
 from fly.remote.compose import _start_services, _stop_services
 from fly.settings import Settings
+from fly.shared.catalog import bootstrap_catalog
 from fly.shared.db import handle_db_upload
 from fly.shared.iceberg import handle_iceberg_upload
-from fly.shared.catalog import bootstrap_catalog
 from rest import db as rest_db
 
-cmd = cyclopts.App(name="remote", help="remote deployment of project - requires AWS setup")
+cmd = cyclopts.App(
+    name="remote", help="remote deployment of project - requires AWS setup"
+)
 
 DATA_DIR = pathlib.Path(__file__).parents[3] / "data"
 
@@ -49,6 +51,7 @@ def up(services: bool = True):
     )
     handle_db_upload(engine, rest_db.rides_table, TRIP_DATA_FILE)
     console.print(" 🔗 Notebook is ready! http://localhost:8080")
+
 
 @cmd.command()
 def down():
